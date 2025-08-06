@@ -1,5 +1,4 @@
 // src/constants/index.ts
-
 import { pREWAContracts } from '@/contracts/addresses';
 import AccessControl from '@/contracts/abis/AccessControl.json';
 import ContractRegistry from '@/contracts/abis/ContractRegistry.json';
@@ -14,7 +13,7 @@ import IpREWAToken from '@/contracts/abis/IpREWAToken.json';
 import IProxy from '@/contracts/abis/IProxy.json';
 import ITokenStaking from '@/contracts/abis/ITokenStaking.json';
 import IVesting from '@/contracts/abis/IVesting.json';
-import IVestingFactory from '@/contracts/abis/IVestingFactory.json'; // The variable is named IVestingFactory
+import IVestingFactory from '@/contracts/abis/IVestingFactory.json';
 import LiquidityManager from '@/contracts/abis/LiquidityManager.json';
 import LPStaking from '@/contracts/abis/LPStaking.json';
 import OracleIntegration from '@/contracts/abis/OracleIntegration.json';
@@ -23,20 +22,10 @@ import PriceGuard from '@/contracts/abis/PriceGuard.json';
 import ProxyAdmin from '@/contracts/abis/ProxyAdmin.json';
 import SecurityModule from '@/contracts/abis/SecurityModule.json';
 import TokenStaking from '@/contracts/abis/TokenStaking.json';
-import VestingFactory from '@/contracts/abis/VestingFactory.json'; // This is the implementation ABI
+import VestingFactory from '@/contracts/abis/VestingFactory.json';
 import VestingImplementation from '@/contracts/abis/VestingImplementation.json';
-
-// A minimal, strongly-typed ABI for Gnosis Safe
-export const safeAbi = [
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "getOwners",
-    "outputs": [{ "name": "", "type": "address[]" }],
-    "stateMutability": "view",
-    "type": "function",
-  }
-] as const; // "as const" is critical for type inference
+// FIX: Import the strongly-typed ABI from the new .ts file
+import { safeAbi } from '@/contracts/abis/Safe';
 
 export const pREWAAddresses = pREWAContracts;
 
@@ -54,7 +43,7 @@ export const pREWAAbis = {
   IProxy: IProxy.abi,
   ITokenStaking: ITokenStaking.abi,
   IVesting: IVesting.abi,
-  IVestingFactory: IVestingFactory.abi, // FIX: Use the correct variable
+  IVestingFactory: IVestingFactory.abi,
   LiquidityManager: LiquidityManager.abi,
   LPStaking: LPStaking.abi,
   OracleIntegration: OracleIntegration.abi,
@@ -63,7 +52,8 @@ export const pREWAAbis = {
   ProxyAdmin: ProxyAdmin.abi,
   SecurityModule: SecurityModule.abi,
   TokenStaking: TokenStaking.abi,
-  VestingFactory: VestingFactory.abi, // The implementation ABI
+  VestingFactory: VestingFactory.abi,
   VestingImplementation: VestingImplementation.abi,
-  Safe: safeAbi, // The new, strongly-typed Safe ABI
+  // FIX: Export the strongly-typed ABI
+  Safe: safeAbi,
 };

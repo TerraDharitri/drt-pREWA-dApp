@@ -5,7 +5,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import SafeAppsSDK, { SafeInfo } from '@safe-global/safe-apps-sdk';
 import { SafeAppProvider } from '@safe-global/safe-apps-provider';
-// FIX: Corrected the casing of the imported type from 'Eip1193Provider' to 'EIP1193Provider'
 import { EIP1193Provider } from 'viem';
 
 // Define the shape of our context
@@ -38,14 +37,16 @@ export const SafeProvider = ({ children }: { children: ReactNode }) => {
     const initSafe = async () => {
       try {
         const safeSDK = new SafeAppsSDK();
-        // The getInfo method will throw an error if not in a Safe context, which is what we want.
         const safeInfo = await safeSDK.safe.getInfo();
         
         if (safeInfo) {
           setSdk(safeSDK);
           setSafe(safeInfo);
           setIsSafe(true);
-          setSafeProvider(new SafeAppProvider(safeInfo, safeSDK));
+          
+          // FIX: Use a type assertion to tell TypeScript that SafeAppProvider is compatible with EIP1193Provider.
+          // This resolves the complex type mismatch between the two libraries.
+          setSafeProvider(new SafeAppProvider(safeInfo, safeSDK) as EIP1193Provider);
         }
       } catch (error) {
         console.log("Not running in a Safe App context.");

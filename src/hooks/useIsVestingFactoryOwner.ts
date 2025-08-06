@@ -4,35 +4,45 @@
 import { useAccount, useReadContract } from "wagmi";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { Abi, Address } from "viem";
+import { useSafe } from "@/providers/SafeProvider";
+import { safeAbi } from "@/contracts/abis/Safe"; // Import the typed ABI directly
 
-/**
- * Checks if the currently connected entity (expected to be the Safe contract itself) 
- * is the owner of the VestingFactory contract. This hook is designed to work
- * within the Safe App context.
- */
 export const useIsVestingFactoryOwner = () => {
   const { address: connectedAddress, chainId } = useAccount();
+  const { isSafe: isSafeContext, safe } = useSafe();
 
-  const vestingFactoryAddress = chainId 
-    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.VestingFactory 
-    : undefined;
+  const addresses = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses] : undefined;
+  const vestingFactoryAddress = addresses?.VestingFactory;
+  const adminSafeAddress = addresses?.ProtocolAdminSafe;
 
-  const { data: factoryOwner, isLoading } = useReadContract({
+  const { data: factoryOwner, isLoading: isLoadingFactoryOwner } = useReadContract({
     address: vestingFactoryAddress,
     abi: pREWAAbis.VestingFactory,
     functionName: 'owner',
-    query: { 
-      enabled: !!vestingFactoryAddress 
-    }
+    query: { enabled: !!vestingFactoryAddress }
   });
 
-  const isOwner = !!connectedAddress &&
-                  !!factoryOwner &&
-                  typeof factoryOwner === 'string' &&
-                  connectedAddress.toLowerCase() === factoryOwner.toLowerCase();
+  const isSafeTheFactoryOwner = !!factoryOwner &&
+                                !!adminSafeAddress &&
+                                typeof factoryOwner === 'string' &&
+                                factoryOwner.toLowerCase() === adminSafeAddress.toLowerCase();
+
+  const { data: safeOwners, isLoading: isLoadingSafeOwners } = useReadContract({
+    address: adminSafeAddress,
+    abi: safeAbi, // FIX: Use the directly imported, strongly-typed ABI
+    functionName: 'getOwners',
+    query: { enabled: isSafeTheFactoryOwner && !!connectedAddress }
+  });
+
+  const isConnectedAddressASafeOwner = !!connectedAddress &&
+                                       !!safeOwners &&
+                                       // This will now compile correctly because `safeOwners` is known to be an array
+                                       safeOwners.some((owner: Address) => owner.toLowerCase() === connectedAddress.toLowerCase());
+
+  const isOwner = isSafeTheFactoryOwner && isConnectedAddressASafeOwner;
 
   return { 
     isOwner, 
-    isLoading
+    isLoading: isLoadingFactoryOwner || isLoadingSafeOwners
   };
 };

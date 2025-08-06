@@ -1,9 +1,8 @@
-// src/components/web3/vesting/CreateVestingSchedule.tsx
-
 "use client";
-import React, { useState, useMemo } from 'react'; // <-- Import useMemo
+import React, { useState, useMemo } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { useIsVestingFactoryOwner } from '@/hooks/useIsVestingFactoryOwner';
+import { useIsSafeOwner } from '@/hooks/useIsSafeOwner';
+import { useSafe } from '@/providers/SafeProvider';
 import SafeAppsSDK from '@safe-global/safe-apps-sdk';
 import { pREWAAddresses, pREWAAbis } from '@/constants';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
@@ -13,17 +12,12 @@ import { Spinner } from '@/components/ui/Spinner';
 import { parseUnits, Address, isAddress, formatUnits, encodeFunctionData } from 'viem';
 import toast from 'react-hot-toast';
 import { isValidNumberInput } from "@/lib/utils";
-import { useSafe } from '@/providers/SafeProvider';
 
 export function CreateVestingSchedule() {
   const { chainId } = useAccount();
-  const { isOwner, isLoading: isOwnerLoading } = useIsVestingFactoryOwner();
+  const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
   const { isSafe: isSafeContext } = useSafe();
   
-  // FIX: Instantiate the SDK once using useMemo.
-  // This ensures the connection to the Safe UI is stable before we try to use it.
-  const sdk = useMemo(() => new SafeAppsSDK(), []);
-
   const [beneficiary, setBeneficiary] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -66,6 +60,7 @@ export function CreateVestingSchedule() {
     const toastId = toast.loading("Proposing transaction to Safe...");
 
     try {
+      const sdk = new SafeAppsSDK();
       const transactionData = encodeFunctionData({
         abi: pREWAAbis.VestingFactory,
         functionName: 'createVesting',
@@ -75,14 +70,13 @@ export function CreateVestingSchedule() {
         ],
       });
 
-      // Use the stable SDK instance to send the transaction.
       await sdk.txs.send({
         txs: [{ to: vestingFactoryAddress, value: '0', data: transactionData }],
       });
       toast.success(`Transaction proposed! Please sign in your Safe app.`, { id: toastId, duration: 8000 });
     } catch (e) {
       console.error("Failed to propose transaction to Safe:", e);
-      toast.error("Proposal failed. Please ensure your Safe is on the correct network.", { id: toastId });
+      toast.error("Proposal failed. This feature requires running inside the official Safe App.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +114,7 @@ export function CreateVestingSchedule() {
     <Card className="mb-8">
       <CardHeader><CardTitle>Propose New Vesting Schedule (Admin)</CardTitle></CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
+         <div>
           <label className="mb-1 block text-sm font-medium">Beneficiary Address</label>
           <Input value={beneficiary} onChange={e => setBeneficiary(e.target.value)} placeholder="0x..." />
         </div>

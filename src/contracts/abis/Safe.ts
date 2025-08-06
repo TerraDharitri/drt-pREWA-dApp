@@ -1,6 +1,6 @@
 // src/contracts/abis/Safe.ts
 
-// Using "as const" is crucial for wagmi to correctly infer the return types.
+// The "as const" assertion is essential. It tells TypeScript that this object and its properties will never change.
 export const safeAbi = [
   {
     "constant": true,
