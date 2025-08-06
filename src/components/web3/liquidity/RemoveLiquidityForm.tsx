@@ -1,76 +1,167 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useBalance } from 'wagmi';
-import { pREWAAddresses, pREWAAbis } from '@/constants';
-import { useTokenApproval } from '@/hooks/useTokenApproval';
-import { useLiquidity } from '@/hooks/useLiquidity'; 
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Spinner } from '@/components/ui/Spinner';
-import { parseUnits, formatUnits, Address } from 'viem';
+// src/components/web3/liquidity/RemoveLiquidityForm.tsx
 
-const BUSD_TESTNET_ADDRESS: Address = '0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee'; 
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
+import { useAccount, useBalance } from "wagmi";
+import { pREWAAddresses } from "@/constants";
+import { useTokenApproval } from "@/hooks/useTokenApproval";
+import { useLiquidity } from "@/hooks/useLiquidity";
+import { useReadLiquidityPositions, LiquidityPosition } from "@/hooks/useReadLiquidityPositions";
+import { TOKEN_LIST_TESTNET } from "@/constants/tokens";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import { Spinner } from "@/components/ui/Spinner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { parseUnits, formatUnits, Address, isAddressEqual } from "viem";
+import { formatAddress } from "@/lib/web3-utils";
+import toast from "react-hot-toast";
+import { isValidNumberInput } from "@/lib/utils";
 
 export function RemoveLiquidityForm() {
   const { address, chainId } = useAccount();
   const liquidityManagerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager : undefined;
-
-  const [lpTokenAddress, setLpTokenAddress] = useState<Address | undefined>();
+  
+  const { positions: availableLPs, isLoading: isLoadingLPs, refetch: refetchLPs } = useReadLiquidityPositions();
+  
+  const [selectedLp, setSelectedLp] = useState<LiquidityPosition | undefined>();
   const [lpAmount, setLpAmount] = useState("");
-  
-  const { data: pREWA_BNB_LP_Address } = useReadContract({
-      address: liquidityManagerAddress, abi: pREWAAbis.LiquidityManager, functionName: 'getLPTokenAddress', args: ['0x0000000000000000000000000000000000000000']
-  });
 
-  const { data: pREWA_BUSD_LP_Address } = useReadContract({
-      address: liquidityManagerAddress, abi: pREWAAbis.LiquidityManager, functionName: 'getLPTokenAddress', args: [BUSD_TESTNET_ADDRESS]
-  });
-  
-  const [pairType, setPairType] = useState<'TOKEN' | 'BNB'>('TOKEN');
+  const isAmountValid = useMemo(() => isValidNumberInput(lpAmount), [lpAmount]);
 
   useEffect(() => {
-    const newLpAddress = pairType === 'TOKEN' ? pREWA_BUSD_LP_Address : pREWA_BNB_LP_Address;
-    // CORRECTED: Explicitly cast the 'unknown' type to 'Address | undefined' before setting state.
-    setLpTokenAddress(newLpAddress as Address | undefined);
-  }, [pairType, pREWA_BUSD_LP_Address, pREWA_BNB_LP_Address]);
-  
-  const { data: lpBalance } = useBalance({ address, token: lpTokenAddress, query: { enabled: !!lpTokenAddress }});
-  
-  const { allowance, approve, isLoading: isApproving } = useTokenApproval(lpTokenAddress, liquidityManagerAddress);
-  const { removeLiquidity, removeLiquidityBNB, isLoading: isRemoving } = useLiquidity();
-  
-  const needsApproval = lpAmount && lpTokenAddress ? !allowance || allowance < parseUnits(lpAmount, 18) : false;
-  const isLoading = isApproving || isRemoving;
+    if (availableLPs.length > 0 && !selectedLp) {
+      setSelectedLp(availableLPs[0]);
+    } else if (availableLPs.length === 0) {
+      setSelectedLp(undefined);
+    }
+  }, [availableLPs, selectedLp]);
+
+  const { data: lpBalance } = useBalance({
+    address,
+    token: selectedLp?.lpTokenAddress,
+    query: { enabled: !!selectedLp },
+  });
+
+  const handleRemoveSuccess = () => {
+    setLpAmount("");
+    toast.success("Balances will update shortly.");
+    refetchLPs();
+  };
+
+  const { allowance, approve, isLoading: isApproving } = useTokenApproval(selectedLp?.lpTokenAddress, liquidityManagerAddress);
+  const { removeLiquidity, removeLiquidityBNB, isLoading: isRemoving } = useLiquidity({ onRemoveSuccess: handleRemoveSuccess });
+
+  const needsApproval = isAmountValid && selectedLp && lpBalance && lpBalance.value > 0n && (!allowance || allowance < parseUnits(lpAmount, 18));
+  const isLoading = isApproving || isRemoving || isLoadingLPs;
 
   const handleRemove = () => {
-    if (needsApproval) {
-      approve();
-    } else {
-        if (pairType === 'TOKEN') {
-            removeLiquidity(BUSD_TESTNET_ADDRESS, lpAmount);
-        } else {
-            removeLiquidityBNB(lpAmount);
-        }
+    if (!selectedLp || !isAmountValid) {
+        toast.error("Please enter a valid amount to remove.");
+        return;
     }
+    
+    const executeRemove = () => {
+      const isBNBPair = TOKEN_LIST_TESTNET.find(t => isAddressEqual(t.address, selectedLp.otherTokenAddress))?.symbol === 'BNB';
+      if (isBNBPair) {
+        removeLiquidityBNB(lpAmount);
+      } else {
+        removeLiquidity(selectedLp.otherTokenAddress, lpAmount);
+      }
+    };
+
+    if (needsApproval) {
+      approve({ onSuccess: executeRemove });
+    } else {
+      executeRemove();
+    }
+  };
+
+  const poolOptions = useMemo(() => {
+    return availableLPs.map(lp => {
+      const otherTokenInfo = TOKEN_LIST_TESTNET.find(t => isAddressEqual(t.address, lp.otherTokenAddress));
+      const name = otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(lp.otherTokenAddress)}`;
+      return { ...lp, name };
+    });
+  }, [availableLPs]);
+
+  const handlePercentClick = (percent: number) => {
+    if (!lpBalance) return;
+    const newAmount = (lpBalance.value * BigInt(percent)) / 100n;
+    setLpAmount(formatUnits(newAmount, lpBalance.decimals));
+  };
+
+  if (isLoadingLPs) {
+      return <div className="flex justify-center p-8"><Spinner /></div>;
+  }
+  
+  if (poolOptions.length === 0) {
+      return (
+        <Card className="max-w-md mx-auto">
+            <CardHeader>
+                <CardTitle>Remove Liquidity</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-center text-gray-500">
+                    You do not have any LP tokens in your wallet to remove.
+                </p>
+            </CardContent>
+        </Card>
+      );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button onClick={() => setPairType('TOKEN')} variant={pairType === 'TOKEN' ? 'default' : 'secondary'}>pREWA-BUSD</Button>
-        <Button onClick={() => setPairType('BNB')} variant={pairType === 'BNB' ? 'default' : 'secondary'}>pREWA-BNB</Button>
-      </div>
-      <div>
-        <div className="flex justify-between items-baseline mb-1">
-          <label>LP Token Amount to Remove</label>
-          {lpBalance && <span className="text-xs text-gray-500">Balance: {formatUnits(lpBalance.value, lpBalance.decimals)}</span>}
+    <Card className="max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Remove Liquidity</CardTitle>
+        <CardDescription>Select a pool and amount to remove.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+            <label className="mb-1 block text-sm font-medium">Select Pool</label>
+            <select
+                value={selectedLp?.id}
+                onChange={(e) => {
+                    const selected = poolOptions.find(p => p.id === e.target.value);
+                    setSelectedLp(selected);
+                    setLpAmount('');
+                }}
+                className="w-full p-2 border rounded-md bg-transparent dark:bg-dark-surface dark:border-dark-border"
+            >
+                {poolOptions.map(pool => (
+                    <option key={pool.id} value={pool.id}>{pool.name}</option>
+                ))}
+            </select>
         </div>
-        <Input type="text" value={lpAmount} onChange={e => setLpAmount(e.target.value)} placeholder="0.0" />
-      </div>
-      <Button onClick={handleRemove} className="w-full" disabled={isLoading || !lpAmount}>
-        {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-        {needsApproval ? 'Approve LP Token' : 'Remove Liquidity'}
-      </Button>
-    </div>
+        <div className="p-4 rounded-lg bg-greyscale-50 dark:bg-dark-surface space-y-2">
+          <div className="mb-1 flex items-baseline justify-between">
+            <label className="text-sm">Amount to Remove</label>
+            {lpBalance && (
+              <span className="text-xs text-gray-500">
+                Balance: {formatUnits(lpBalance.value, lpBalance.decimals)}
+              </span>
+            )}
+          </div>
+          <Input
+            type="text"
+            value={lpAmount}
+            onChange={(e) => setLpAmount(e.target.value)}
+            placeholder="0.0"
+            disabled={!selectedLp}
+            className="web3-input !text-2xl !h-auto !p-0 !border-0 focus:!ring-0"
+          />
+           <div className="flex justify-end gap-2">
+            {[25, 50, 75, 100].map(p => (
+                <Button key={p} size="sm" variant="secondary" onClick={() => handlePercentClick(p)} disabled={!lpBalance || lpBalance.value === 0n}>
+                    {p === 100 ? 'MAX' : `${p}%`}
+                </Button>
+            ))}
+          </div>
+        </div>
+        <Button onClick={handleRemove} className="w-full" disabled={isLoading || !isAmountValid || !selectedLp}>
+          {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+          {needsApproval ? "Approve LP Token" : "Remove Liquidity"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

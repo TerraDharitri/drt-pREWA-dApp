@@ -1,1 +1,954 @@
-{"abi":[{"type":"function","name":"addMinter","inputs":[{"name":"minterAddress","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"allowance","inputs":[{"name":"owner","type":"address","internalType":"address"},{"name":"spender","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"approve","inputs":[{"name":"spender","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"balanceOf","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"blacklist","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"burn","inputs":[{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"burnFrom","inputs":[{"name":"account","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"cancelBlacklistProposal","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"cap","inputs":[],"outputs":[{"name":"currentCap","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"checkEmergencyStatus","inputs":[{"name":"operation","type":"bytes4","internalType":"bytes4"}],"outputs":[{"name":"allowed","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"decimals","inputs":[],"outputs":[{"name":"","type":"uint8","internalType":"uint8"}],"stateMutability":"view"},{"type":"function","name":"emergencyShutdown","inputs":[{"name":"emergencyLevel","type":"uint8","internalType":"uint8"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"executeBlacklist","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"getBlacklistProposal","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"proposalExists","type":"bool","internalType":"bool"},{"name":"executeAfterTimestamp","type":"uint256","internalType":"uint256"},{"name":"timeRemainingSec","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"getBlacklistTimelockDuration","inputs":[],"outputs":[{"name":"durationSeconds","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"getEmergencyController","inputs":[],"outputs":[{"name":"controller","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"isBlacklisted","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"isAccBlacklisted","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"isEmergencyPaused","inputs":[],"outputs":[{"name":"isPaused","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"isMinter","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"isAccMinter","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"mint","inputs":[{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"name","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"type":"function","name":"owner","inputs":[],"outputs":[{"name":"ownerAddress","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"pause","inputs":[],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"paused","inputs":[],"outputs":[{"name":"isTokenPaused","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"recoverTokens","inputs":[{"name":"tokenAddress","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"removeMinter","inputs":[{"name":"minterAddress","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"setBlacklistTimelockDuration","inputs":[{"name":"newDurationSeconds","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"setCap","inputs":[{"name":"newCapAmount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"setEmergencyController","inputs":[{"name":"controller","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"symbol","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"type":"function","name":"totalSupply","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"transfer","inputs":[{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"transferFrom","inputs":[{"name":"from","type":"address","internalType":"address"},{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"transferTokenOwnership","inputs":[{"name":"newOwnerAddress","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"unblacklist","inputs":[{"name":"account","type":"address","internalType":"address"}],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"function","name":"unpause","inputs":[],"outputs":[{"name":"success","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"type":"event","name":"Approval","inputs":[{"name":"owner","type":"address","indexed":true,"internalType":"address"},{"name":"spender","type":"address","indexed":true,"internalType":"address"},{"name":"value","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"type":"event","name":"BlacklistCancelled","inputs":[{"name":"account","type":"address","indexed":true,"internalType":"address"},{"name":"canceller","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"BlacklistProposed","inputs":[{"name":"account","type":"address","indexed":true,"internalType":"address"},{"name":"executeAfter","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"proposer","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"BlacklistStatusChanged","inputs":[{"name":"account","type":"address","indexed":true,"internalType":"address"},{"name":"blacklisted","type":"bool","indexed":false,"internalType":"bool"},{"name":"operator","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"BlacklistTimelockDurationUpdated","inputs":[{"name":"oldDuration","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"newDuration","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"updater","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"CapUpdated","inputs":[{"name":"oldCap","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"newCap","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"updater","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"EmergencyShutdownHandled","inputs":[{"name":"emergencyLevel","type":"uint8","indexed":false,"internalType":"uint8"},{"name":"caller","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"EmergencyStatusChecked","inputs":[{"name":"emergencyLevel","type":"uint8","indexed":false,"internalType":"uint8"},{"name":"operation","type":"bytes4","indexed":false,"internalType":"bytes4"},{"name":"allowed","type":"bool","indexed":false,"internalType":"bool"}],"anonymous":false},{"type":"event","name":"MinterStatusChanged","inputs":[{"name":"minter","type":"address","indexed":true,"internalType":"address"},{"name":"status","type":"bool","indexed":false,"internalType":"bool"},{"name":"operator","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"TokenOwnershipTransferred","inputs":[{"name":"previousOwner","type":"address","indexed":true,"internalType":"address"},{"name":"newOwner","type":"address","indexed":true,"internalType":"address"},{"name":"operator","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"TokenRecovered","inputs":[{"name":"token","type":"address","indexed":true,"internalType":"address"},{"name":"amount","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"recipient","type":"address","indexed":true,"internalType":"address"}],"anonymous":false},{"type":"event","name":"Transfer","inputs":[{"name":"from","type":"address","indexed":true,"internalType":"address"},{"name":"to","type":"address","indexed":true,"internalType":"address"},{"name":"value","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false}],"bytecode":{"object":"0x","sourceMap":"","linkReferences":{}},"deployedBytecode":{"object":"0x","sourceMap":"","linkReferences":{}},"methodIdentifiers":{"addMinter(address)":"983b2d56","allowance(address,address)":"dd62ed3e","approve(address,uint256)":"095ea7b3","balanceOf(address)":"70a08231","blacklist(address)":"f9f92be4","burn(uint256)":"42966c68","burnFrom(address,uint256)":"79cc6790","cancelBlacklistProposal(address)":"71ef93fd","cap()":"355274ea","checkEmergencyStatus(bytes4)":"8aed668a","decimals()":"313ce567","emergencyShutdown(uint8)":"eb1676c1","executeBlacklist(address)":"16492ce1","getBlacklistProposal(address)":"f2f14617","getBlacklistTimelockDuration()":"9ac55079","getEmergencyController()":"c993cc9d","isBlacklisted(address)":"fe575a87","isEmergencyPaused()":"290d10c4","isMinter(address)":"aa271e1a","mint(address,uint256)":"40c10f19","name()":"06fdde03","owner()":"8da5cb5b","pause()":"8456cb59","paused()":"5c975abb","recoverTokens(address,uint256)":"069c9fae","removeMinter(address)":"3092afd5","setBlacklistTimelockDuration(uint256)":"13acd718","setCap(uint256)":"47786d37","setEmergencyController(address)":"6ca7dc89","symbol()":"95d89b41","totalSupply()":"18160ddd","transfer(address,uint256)":"a9059cbb","transferFrom(address,address,uint256)":"23b872dd","transferTokenOwnership(address)":"21e6b53d","unblacklist(address)":"75e3661e","unpause()":"3f4ba83a"},"rawMetadata":"{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"canceller\",\"type\":\"address\"}],\"name\":\"BlacklistCancelled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"executeAfter\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposer\",\"type\":\"address\"}],\"name\":\"BlacklistProposed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"blacklisted\",\"type\":\"bool\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"BlacklistStatusChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"oldDuration\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newDuration\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"updater\",\"type\":\"address\"}],\"name\":\"BlacklistTimelockDurationUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"oldCap\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newCap\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"updater\",\"type\":\"address\"}],\"name\":\"CapUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"emergencyLevel\",\"type\":\"uint8\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"caller\",\"type\":\"address\"}],\"name\":\"EmergencyShutdownHandled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"emergencyLevel\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes4\",\"name\":\"operation\",\"type\":\"bytes4\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"allowed\",\"type\":\"bool\"}],\"name\":\"EmergencyStatusChecked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"MinterStatusChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"TokenOwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"TokenRecovered\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minterAddress\",\"type\":\"address\"}],\"name\":\"addMinter\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"blacklist\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"cancelBlacklistProposal\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"cap\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"currentCap\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"operation\",\"type\":\"bytes4\"}],\"name\":\"checkEmergencyStatus\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"allowed\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"emergencyLevel\",\"type\":\"uint8\"}],\"name\":\"emergencyShutdown\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"executeBlacklist\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getBlacklistProposal\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"proposalExists\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"executeAfterTimestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timeRemainingSec\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBlacklistTimelockDuration\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"durationSeconds\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getEmergencyController\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"controller\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"isBlacklisted\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isAccBlacklisted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"isEmergencyPaused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isPaused\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"isMinter\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isAccMinter\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"ownerAddress\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isTokenPaused\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"recoverTokens\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minterAddress\",\"type\":\"address\"}],\"name\":\"removeMinter\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"newDurationSeconds\",\"type\":\"uint256\"}],\"name\":\"setBlacklistTimelockDuration\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"newCapAmount\",\"type\":\"uint256\"}],\"name\":\"setCap\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"controller\",\"type\":\"address\"}],\"name\":\"setEmergencyController\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwnerAddress\",\"type\":\"address\"}],\"name\":\"transferTokenOwnership\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"unblacklist\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"events\":{\"Approval(address,address,uint256)\":{\"details\":\"Emitted when the allowance of a `spender` for an `owner` is set by a call to {approve}. `value` is the new allowance.\"},\"BlacklistCancelled(address,address)\":{\"params\":{\"account\":\"The account whose blacklist proposal was cancelled.\",\"canceller\":\"The address that cancelled the proposal.\"}},\"BlacklistProposed(address,uint256,address)\":{\"params\":{\"account\":\"The address of the account proposed for blacklisting.\",\"executeAfter\":\"The timestamp after which the blacklisting can be executed.\",\"proposer\":\"The address that created the proposal.\"}},\"BlacklistStatusChanged(address,bool,address)\":{\"params\":{\"account\":\"The address of the account.\",\"blacklisted\":\"True if the account was blacklisted, false if unblacklisted.\",\"operator\":\"The address that performed the action.\"}},\"BlacklistTimelockDurationUpdated(uint256,uint256,address)\":{\"params\":{\"newDuration\":\"The new timelock duration in seconds.\",\"oldDuration\":\"The previous timelock duration in seconds.\",\"updater\":\"The address that updated the duration.\"}},\"CapUpdated(uint256,uint256,address)\":{\"params\":{\"newCap\":\"The new supply cap.\",\"oldCap\":\"The previous supply cap.\",\"updater\":\"The address that updated the cap.\"}},\"EmergencyShutdownHandled(uint8,address)\":{\"params\":{\"caller\":\"The address of the controller that initiated the shutdown signal.\",\"emergencyLevel\":\"The emergency level that was handled.\"}},\"EmergencyStatusChecked(uint8,bytes4,bool)\":{\"params\":{\"allowed\":\"A boolean indicating whether the operation was allowed to proceed.\",\"emergencyLevel\":\"The current system-wide emergency level at the time of the check.\",\"operation\":\"The function selector of the operation being checked.\"}},\"MinterStatusChanged(address,bool,address)\":{\"params\":{\"minter\":\"The address of the account.\",\"operator\":\"The address that performed the action.\",\"status\":\"True if the account was granted minter rights, false if revoked.\"}},\"TokenOwnershipTransferred(address,address,address)\":{\"params\":{\"newOwner\":\"The address of the new owner.\",\"operator\":\"The address that initiated the transfer.\",\"previousOwner\":\"The address of the previous owner.\"}},\"TokenRecovered(address,uint256,address)\":{\"params\":{\"amount\":\"The amount recovered.\",\"recipient\":\"The address that received the tokens.\",\"token\":\"The address of the recovered token.\"}},\"Transfer(address,address,uint256)\":{\"details\":\"Emitted when `value` tokens are moved from one account (`from`) to another (`to`). Note that `value` may be zero.\"}},\"kind\":\"dev\",\"methods\":{\"addMinter(address)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"minterAddress\":\"The address to grant the minter role.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"allowance(address,address)\":{\"details\":\"Returns the remaining number of tokens that `spender` will be allowed to spend on behalf of `owner` through {transferFrom}. This is zero by default. This value changes when {approve} or {transferFrom} are called.\"},\"approve(address,uint256)\":{\"details\":\"Sets `amount` as the allowance of `spender` over the caller's tokens. Returns a boolean value indicating whether the operation succeeded. IMPORTANT: Beware that changing an allowance with this method brings the risk that someone may use both the old and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729 Emits an {Approval} event.\"},\"balanceOf(address)\":{\"details\":\"Returns the amount of tokens owned by `account`.\"},\"blacklist(address)\":{\"details\":\"This action may be subject to a timelock. Callable only by the owner.\",\"params\":{\"account\":\"The address to blacklist.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"burn(uint256)\":{\"params\":{\"amount\":\"The amount of tokens to burn.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"burnFrom(address,uint256)\":{\"params\":{\"account\":\"The address whose tokens will be burned.\",\"amount\":\"The amount of tokens to burn.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"cancelBlacklistProposal(address)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"account\":\"The account whose proposal is to be cancelled.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"cap()\":{\"returns\":{\"currentCap\":\"The supply cap.\"}},\"checkEmergencyStatus(bytes4)\":{\"details\":\"This function is typically called by modifiers within the implementing contract to guard functions.\",\"params\":{\"operation\":\"The 4-byte function selector of the operation being attempted.\"},\"returns\":{\"allowed\":\"A boolean indicating if the operation is permitted.\"}},\"decimals()\":{\"returns\":{\"_0\":\"The number of decimals.\"}},\"emergencyShutdown(uint8)\":{\"details\":\"The implementing contract defines how it should react to different emergency levels. For example, it might pause itself or enable emergency withdrawals.\",\"params\":{\"emergencyLevel\":\"The system-wide emergency level being broadcast by the controller.\"},\"returns\":{\"success\":\"A boolean indicating if the shutdown was handled successfully.\"}},\"executeBlacklist(address)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"account\":\"The account to blacklist.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"getBlacklistProposal(address)\":{\"params\":{\"account\":\"The account for which the proposal was made.\"},\"returns\":{\"executeAfterTimestamp\":\"The timestamp after which the blacklist can be executed.\",\"proposalExists\":\"True if a proposal exists.\",\"timeRemainingSec\":\"The remaining time in seconds until execution is possible.\"}},\"getBlacklistTimelockDuration()\":{\"returns\":{\"durationSeconds\":\"The timelock duration in seconds.\"}},\"getEmergencyController()\":{\"returns\":{\"controller\":\"The address of the EmergencyController.\"}},\"isBlacklisted(address)\":{\"params\":{\"account\":\"The address to check.\"},\"returns\":{\"isAccBlacklisted\":\"True if the account is blacklisted.\"}},\"isEmergencyPaused()\":{\"returns\":{\"isPaused\":\"A boolean indicating if the contract is considered to be in a paused state.\"}},\"isMinter(address)\":{\"params\":{\"account\":\"The address to check.\"},\"returns\":{\"isAccMinter\":\"True if the account is a minter.\"}},\"mint(address,uint256)\":{\"details\":\"Callable only by accounts with the minter role.\",\"params\":{\"amount\":\"The amount of tokens to mint.\",\"to\":\"The address to receive the new tokens.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"name()\":{\"returns\":{\"_0\":\"The token name string.\"}},\"owner()\":{\"returns\":{\"ownerAddress\":\"The address of the owner.\"}},\"pause()\":{\"details\":\"Callable only by accounts with the pauser role.\",\"returns\":{\"success\":\"True if the operation was successful.\"}},\"paused()\":{\"returns\":{\"isTokenPaused\":\"True if the token is paused.\"}},\"recoverTokens(address,uint256)\":{\"details\":\"Cannot be used to recover pREWA tokens. Callable only by the owner.\",\"params\":{\"amount\":\"The amount to recover.\",\"tokenAddress\":\"The address of the token to recover.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"removeMinter(address)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"minterAddress\":\"The address to revoke the minter role from.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"setBlacklistTimelockDuration(uint256)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"newDurationSeconds\":\"The new timelock duration in seconds.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"setCap(uint256)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"newCapAmount\":\"The new supply cap.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"setEmergencyController(address)\":{\"details\":\"This function should be access-controlled within the implementing contract (e.g., `onlyOwner`).\",\"params\":{\"controller\":\"The address of the new EmergencyController.\"},\"returns\":{\"success\":\"A boolean indicating if the operation was successful.\"}},\"symbol()\":{\"returns\":{\"_0\":\"The token symbol string.\"}},\"totalSupply()\":{\"details\":\"Returns the amount of tokens in existence.\"},\"transfer(address,uint256)\":{\"details\":\"Moves `amount` tokens from the caller's account to `to`. Returns a boolean value indicating whether the operation succeeded. Emits a {Transfer} event.\"},\"transferFrom(address,address,uint256)\":{\"details\":\"Moves `amount` tokens from `from` to `to` using the allowance mechanism. `amount` is then deducted from the caller's allowance. Returns a boolean value indicating whether the operation succeeded. Emits a {Transfer} event.\"},\"transferTokenOwnership(address)\":{\"details\":\"Callable only by the current owner.\",\"params\":{\"newOwnerAddress\":\"The address of the new owner.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"unblacklist(address)\":{\"details\":\"Callable only by the owner.\",\"params\":{\"account\":\"The address to unblacklist.\"},\"returns\":{\"success\":\"True if the operation was successful.\"}},\"unpause()\":{\"details\":\"Callable only by accounts with the pauser role.\",\"returns\":{\"success\":\"True if the operation was successful.\"}}},\"title\":\"IpREWAToken Interface\",\"version\":1},\"userdoc\":{\"events\":{\"BlacklistCancelled(address,address)\":{\"notice\":\"Emitted when a blacklist proposal is cancelled.\"},\"BlacklistProposed(address,uint256,address)\":{\"notice\":\"Emitted when a proposal to blacklist an account is created.\"},\"BlacklistStatusChanged(address,bool,address)\":{\"notice\":\"Emitted when an account's blacklist status is changed.\"},\"BlacklistTimelockDurationUpdated(uint256,uint256,address)\":{\"notice\":\"Emitted when the blacklist timelock duration is updated.\"},\"CapUpdated(uint256,uint256,address)\":{\"notice\":\"Emitted when the token's supply cap is updated.\"},\"EmergencyShutdownHandled(uint8,address)\":{\"notice\":\"Emitted when a contract has processed an `emergencyShutdown` signal from the controller.\"},\"EmergencyStatusChecked(uint8,bytes4,bool)\":{\"notice\":\"Emitted when an emergency status check is performed.\"},\"MinterStatusChanged(address,bool,address)\":{\"notice\":\"Emitted when an account's minter status is changed.\"},\"TokenOwnershipTransferred(address,address,address)\":{\"notice\":\"Emitted when the ownership of the token contract is transferred.\"},\"TokenRecovered(address,uint256,address)\":{\"notice\":\"Emitted when non-pREWA tokens are recovered from the contract.\"}},\"kind\":\"user\",\"methods\":{\"addMinter(address)\":{\"notice\":\"Grants the minter role to an account.\"},\"blacklist(address)\":{\"notice\":\"Adds an account to the blacklist, preventing it from sending or receiving tokens.\"},\"burn(uint256)\":{\"notice\":\"Destroys a specified amount of tokens from the caller's balance.\"},\"burnFrom(address,uint256)\":{\"notice\":\"Destroys a specified amount of tokens from a specific account, using the caller's allowance.\"},\"cancelBlacklistProposal(address)\":{\"notice\":\"Cancels a pending blacklist proposal.\"},\"cap()\":{\"notice\":\"Returns the maximum total supply of the token.\"},\"checkEmergencyStatus(bytes4)\":{\"notice\":\"Checks if a specific operation is allowed based on the current emergency status.\"},\"decimals()\":{\"notice\":\"Returns the decimals of the token.\"},\"emergencyShutdown(uint8)\":{\"notice\":\"A function to be called by the EmergencyController to trigger a state change in the contract.\"},\"executeBlacklist(address)\":{\"notice\":\"Executes a pending blacklist proposal after the timelock has passed.\"},\"getBlacklistProposal(address)\":{\"notice\":\"Retrieves details of a pending blacklist proposal.\"},\"getBlacklistTimelockDuration()\":{\"notice\":\"Gets the current duration of the blacklist timelock.\"},\"getEmergencyController()\":{\"notice\":\"Returns the address of the EmergencyController managing this contract.\"},\"isBlacklisted(address)\":{\"notice\":\"Checks if an account is on the blacklist.\"},\"isEmergencyPaused()\":{\"notice\":\"Checks if the contract is effectively paused, either locally or by the global EmergencyController.\"},\"isMinter(address)\":{\"notice\":\"Checks if an account has the minter role.\"},\"mint(address,uint256)\":{\"notice\":\"Creates new tokens and assigns them to an account.\"},\"name()\":{\"notice\":\"Returns the name of the token.\"},\"owner()\":{\"notice\":\"Returns the address of the current owner.\"},\"pause()\":{\"notice\":\"Pauses all token transfers, minting, and burning.\"},\"paused()\":{\"notice\":\"Checks if the token is currently paused.\"},\"recoverTokens(address,uint256)\":{\"notice\":\"Recovers other ERC20 tokens mistakenly sent to this contract.\"},\"removeMinter(address)\":{\"notice\":\"Revokes the minter role from an account.\"},\"setBlacklistTimelockDuration(uint256)\":{\"notice\":\"Sets a new duration for the blacklist timelock.\"},\"setCap(uint256)\":{\"notice\":\"Sets a new maximum total supply for the token.\"},\"setEmergencyController(address)\":{\"notice\":\"Sets or updates the address of the EmergencyController.\"},\"symbol()\":{\"notice\":\"Returns the symbol of the token.\"},\"transferTokenOwnership(address)\":{\"notice\":\"Transfers ownership of the token contract.\"},\"unblacklist(address)\":{\"notice\":\"Removes an account from the blacklist.\"},\"unpause()\":{\"notice\":\"Resumes token transfers, minting, and burning.\"}},\"notice\":\"Defines the extended interface for the pREWA token, including all standard ERC20 functions as well as custom administrative and security features.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/core/interfaces/IpREWAToken.sol\":\"IpREWAToken\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/\"],\"viaIR\":true},\"sources\":{\"contracts/core/interfaces/IpREWAToken.sol\":{\"keccak256\":\"0x5e2e7acd4df5700f8038d2d3e6da020ee7ad8354973360a4dac947b6218c9132\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://e4160731c47fbcc5bd8d9547855e51ee26c2093e8f39c053e5abad763cd9c89c\",\"dweb:/ipfs/QmVH6HXqHWgw2mKQB31Shxov3UuCt8a5mT2a3D4XR8wHKh\"]},\"contracts/interfaces/IEmergencyAware.sol\":{\"keccak256\":\"0x679e6cdc57c8b9d75f1928e9767e56a9ad812900dccf3e0a92aa87814324cf5a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://3219a26e6afbc417ec0e89639bbc028d99ba5fa1b32b2df25310e2df758d4b7e\",\"dweb:/ipfs/QmcLE2ZTDr15JcGkKMDDfjKEcUhuDbfMyFoG4c8CV8oPrh\"]},\"lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol\":{\"keccak256\":\"0x0e1f0f5f62f67a881cd1a9597acbc0a5e4071f3c2c10449a183b922ae7272e3f\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://c25f742ff154998d19a669e2508c3597b363e123ce9144cd0fcf6521229f401f\",\"dweb:/ipfs/QmQXRuFzStEWqeEPbhQU6cAg9PaSowxJVo4PDKyRod7dco\"]}},\"version\":1}","metadata":{"compiler":{"version":"0.8.28+commit.7893614a"},"language":"Solidity","output":{"abi":[{"inputs":[{"internalType":"address","name":"owner","type":"address","indexed":true},{"internalType":"address","name":"spender","type":"address","indexed":true},{"internalType":"uint256","name":"value","type":"uint256","indexed":false}],"type":"event","name":"Approval","anonymous":false},{"inputs":[{"internalType":"address","name":"account","type":"address","indexed":true},{"internalType":"address","name":"canceller","type":"address","indexed":true}],"type":"event","name":"BlacklistCancelled","anonymous":false},{"inputs":[{"internalType":"address","name":"account","type":"address","indexed":true},{"internalType":"uint256","name":"executeAfter","type":"uint256","indexed":false},{"internalType":"address","name":"proposer","type":"address","indexed":true}],"type":"event","name":"BlacklistProposed","anonymous":false},{"inputs":[{"internalType":"address","name":"account","type":"address","indexed":true},{"internalType":"bool","name":"blacklisted","type":"bool","indexed":false},{"internalType":"address","name":"operator","type":"address","indexed":true}],"type":"event","name":"BlacklistStatusChanged","anonymous":false},{"inputs":[{"internalType":"uint256","name":"oldDuration","type":"uint256","indexed":false},{"internalType":"uint256","name":"newDuration","type":"uint256","indexed":false},{"internalType":"address","name":"updater","type":"address","indexed":true}],"type":"event","name":"BlacklistTimelockDurationUpdated","anonymous":false},{"inputs":[{"internalType":"uint256","name":"oldCap","type":"uint256","indexed":false},{"internalType":"uint256","name":"newCap","type":"uint256","indexed":false},{"internalType":"address","name":"updater","type":"address","indexed":true}],"type":"event","name":"CapUpdated","anonymous":false},{"inputs":[{"internalType":"uint8","name":"emergencyLevel","type":"uint8","indexed":false},{"internalType":"address","name":"caller","type":"address","indexed":true}],"type":"event","name":"EmergencyShutdownHandled","anonymous":false},{"inputs":[{"internalType":"uint8","name":"emergencyLevel","type":"uint8","indexed":false},{"internalType":"bytes4","name":"operation","type":"bytes4","indexed":false},{"internalType":"bool","name":"allowed","type":"bool","indexed":false}],"type":"event","name":"EmergencyStatusChecked","anonymous":false},{"inputs":[{"internalType":"address","name":"minter","type":"address","indexed":true},{"internalType":"bool","name":"status","type":"bool","indexed":false},{"internalType":"address","name":"operator","type":"address","indexed":true}],"type":"event","name":"MinterStatusChanged","anonymous":false},{"inputs":[{"internalType":"address","name":"previousOwner","type":"address","indexed":true},{"internalType":"address","name":"newOwner","type":"address","indexed":true},{"internalType":"address","name":"operator","type":"address","indexed":true}],"type":"event","name":"TokenOwnershipTransferred","anonymous":false},{"inputs":[{"internalType":"address","name":"token","type":"address","indexed":true},{"internalType":"uint256","name":"amount","type":"uint256","indexed":false},{"internalType":"address","name":"recipient","type":"address","indexed":true}],"type":"event","name":"TokenRecovered","anonymous":false},{"inputs":[{"internalType":"address","name":"from","type":"address","indexed":true},{"internalType":"address","name":"to","type":"address","indexed":true},{"internalType":"uint256","name":"value","type":"uint256","indexed":false}],"type":"event","name":"Transfer","anonymous":false},{"inputs":[{"internalType":"address","name":"minterAddress","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"addMinter","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"stateMutability":"view","type":"function","name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}]},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"view","type":"function","name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"blacklist","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"burn","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"burnFrom","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"cancelBlacklistProposal","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"cap","outputs":[{"internalType":"uint256","name":"currentCap","type":"uint256"}]},{"inputs":[{"internalType":"bytes4","name":"operation","type":"bytes4"}],"stateMutability":"view","type":"function","name":"checkEmergencyStatus","outputs":[{"internalType":"bool","name":"allowed","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}]},{"inputs":[{"internalType":"uint8","name":"emergencyLevel","type":"uint8"}],"stateMutability":"nonpayable","type":"function","name":"emergencyShutdown","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"executeBlacklist","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"view","type":"function","name":"getBlacklistProposal","outputs":[{"internalType":"bool","name":"proposalExists","type":"bool"},{"internalType":"uint256","name":"executeAfterTimestamp","type":"uint256"},{"internalType":"uint256","name":"timeRemainingSec","type":"uint256"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"getBlacklistTimelockDuration","outputs":[{"internalType":"uint256","name":"durationSeconds","type":"uint256"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"getEmergencyController","outputs":[{"internalType":"address","name":"controller","type":"address"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"view","type":"function","name":"isBlacklisted","outputs":[{"internalType":"bool","name":"isAccBlacklisted","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"isEmergencyPaused","outputs":[{"internalType":"bool","name":"isPaused","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"view","type":"function","name":"isMinter","outputs":[{"internalType":"bool","name":"isAccMinter","type":"bool"}]},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"mint","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"name","outputs":[{"internalType":"string","name":"","type":"string"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"owner","outputs":[{"internalType":"address","name":"ownerAddress","type":"address"}]},{"inputs":[],"stateMutability":"nonpayable","type":"function","name":"pause","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"paused","outputs":[{"internalType":"bool","name":"isTokenPaused","type":"bool"}]},{"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"recoverTokens","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"minterAddress","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"removeMinter","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"newDurationSeconds","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"setBlacklistTimelockDuration","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"newCapAmount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"setCap","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"controller","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"setEmergencyController","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}]},{"inputs":[],"stateMutability":"view","type":"function","name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}]},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"stateMutability":"nonpayable","type":"function","name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"address","name":"newOwnerAddress","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"transferTokenOwnership","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"unblacklist","outputs":[{"internalType":"bool","name":"success","type":"bool"}]},{"inputs":[],"stateMutability":"nonpayable","type":"function","name":"unpause","outputs":[{"internalType":"bool","name":"success","type":"bool"}]}],"devdoc":{"kind":"dev","methods":{"addMinter(address)":{"details":"Callable only by the owner.","params":{"minterAddress":"The address to grant the minter role."},"returns":{"success":"True if the operation was successful."}},"allowance(address,address)":{"details":"Returns the remaining number of tokens that `spender` will be allowed to spend on behalf of `owner` through {transferFrom}. This is zero by default. This value changes when {approve} or {transferFrom} are called."},"approve(address,uint256)":{"details":"Sets `amount` as the allowance of `spender` over the caller's tokens. Returns a boolean value indicating whether the operation succeeded. IMPORTANT: Beware that changing an allowance with this method brings the risk that someone may use both the old and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729 Emits an {Approval} event."},"balanceOf(address)":{"details":"Returns the amount of tokens owned by `account`."},"blacklist(address)":{"details":"This action may be subject to a timelock. Callable only by the owner.","params":{"account":"The address to blacklist."},"returns":{"success":"True if the operation was successful."}},"burn(uint256)":{"params":{"amount":"The amount of tokens to burn."},"returns":{"success":"True if the operation was successful."}},"burnFrom(address,uint256)":{"params":{"account":"The address whose tokens will be burned.","amount":"The amount of tokens to burn."},"returns":{"success":"True if the operation was successful."}},"cancelBlacklistProposal(address)":{"details":"Callable only by the owner.","params":{"account":"The account whose proposal is to be cancelled."},"returns":{"success":"True if the operation was successful."}},"cap()":{"returns":{"currentCap":"The supply cap."}},"checkEmergencyStatus(bytes4)":{"details":"This function is typically called by modifiers within the implementing contract to guard functions.","params":{"operation":"The 4-byte function selector of the operation being attempted."},"returns":{"allowed":"A boolean indicating if the operation is permitted."}},"decimals()":{"returns":{"_0":"The number of decimals."}},"emergencyShutdown(uint8)":{"details":"The implementing contract defines how it should react to different emergency levels. For example, it might pause itself or enable emergency withdrawals.","params":{"emergencyLevel":"The system-wide emergency level being broadcast by the controller."},"returns":{"success":"A boolean indicating if the shutdown was handled successfully."}},"executeBlacklist(address)":{"details":"Callable only by the owner.","params":{"account":"The account to blacklist."},"returns":{"success":"True if the operation was successful."}},"getBlacklistProposal(address)":{"params":{"account":"The account for which the proposal was made."},"returns":{"executeAfterTimestamp":"The timestamp after which the blacklist can be executed.","proposalExists":"True if a proposal exists.","timeRemainingSec":"The remaining time in seconds until execution is possible."}},"getBlacklistTimelockDuration()":{"returns":{"durationSeconds":"The timelock duration in seconds."}},"getEmergencyController()":{"returns":{"controller":"The address of the EmergencyController."}},"isBlacklisted(address)":{"params":{"account":"The address to check."},"returns":{"isAccBlacklisted":"True if the account is blacklisted."}},"isEmergencyPaused()":{"returns":{"isPaused":"A boolean indicating if the contract is considered to be in a paused state."}},"isMinter(address)":{"params":{"account":"The address to check."},"returns":{"isAccMinter":"True if the account is a minter."}},"mint(address,uint256)":{"details":"Callable only by accounts with the minter role.","params":{"amount":"The amount of tokens to mint.","to":"The address to receive the new tokens."},"returns":{"success":"True if the operation was successful."}},"name()":{"returns":{"_0":"The token name string."}},"owner()":{"returns":{"ownerAddress":"The address of the owner."}},"pause()":{"details":"Callable only by accounts with the pauser role.","returns":{"success":"True if the operation was successful."}},"paused()":{"returns":{"isTokenPaused":"True if the token is paused."}},"recoverTokens(address,uint256)":{"details":"Cannot be used to recover pREWA tokens. Callable only by the owner.","params":{"amount":"The amount to recover.","tokenAddress":"The address of the token to recover."},"returns":{"success":"True if the operation was successful."}},"removeMinter(address)":{"details":"Callable only by the owner.","params":{"minterAddress":"The address to revoke the minter role from."},"returns":{"success":"True if the operation was successful."}},"setBlacklistTimelockDuration(uint256)":{"details":"Callable only by the owner.","params":{"newDurationSeconds":"The new timelock duration in seconds."},"returns":{"success":"True if the operation was successful."}},"setCap(uint256)":{"details":"Callable only by the owner.","params":{"newCapAmount":"The new supply cap."},"returns":{"success":"True if the operation was successful."}},"setEmergencyController(address)":{"details":"This function should be access-controlled within the implementing contract (e.g., `onlyOwner`).","params":{"controller":"The address of the new EmergencyController."},"returns":{"success":"A boolean indicating if the operation was successful."}},"symbol()":{"returns":{"_0":"The token symbol string."}},"totalSupply()":{"details":"Returns the amount of tokens in existence."},"transfer(address,uint256)":{"details":"Moves `amount` tokens from the caller's account to `to`. Returns a boolean value indicating whether the operation succeeded. Emits a {Transfer} event."},"transferFrom(address,address,uint256)":{"details":"Moves `amount` tokens from `from` to `to` using the allowance mechanism. `amount` is then deducted from the caller's allowance. Returns a boolean value indicating whether the operation succeeded. Emits a {Transfer} event."},"transferTokenOwnership(address)":{"details":"Callable only by the current owner.","params":{"newOwnerAddress":"The address of the new owner."},"returns":{"success":"True if the operation was successful."}},"unblacklist(address)":{"details":"Callable only by the owner.","params":{"account":"The address to unblacklist."},"returns":{"success":"True if the operation was successful."}},"unpause()":{"details":"Callable only by accounts with the pauser role.","returns":{"success":"True if the operation was successful."}}},"version":1},"userdoc":{"kind":"user","methods":{"addMinter(address)":{"notice":"Grants the minter role to an account."},"blacklist(address)":{"notice":"Adds an account to the blacklist, preventing it from sending or receiving tokens."},"burn(uint256)":{"notice":"Destroys a specified amount of tokens from the caller's balance."},"burnFrom(address,uint256)":{"notice":"Destroys a specified amount of tokens from a specific account, using the caller's allowance."},"cancelBlacklistProposal(address)":{"notice":"Cancels a pending blacklist proposal."},"cap()":{"notice":"Returns the maximum total supply of the token."},"checkEmergencyStatus(bytes4)":{"notice":"Checks if a specific operation is allowed based on the current emergency status."},"decimals()":{"notice":"Returns the decimals of the token."},"emergencyShutdown(uint8)":{"notice":"A function to be called by the EmergencyController to trigger a state change in the contract."},"executeBlacklist(address)":{"notice":"Executes a pending blacklist proposal after the timelock has passed."},"getBlacklistProposal(address)":{"notice":"Retrieves details of a pending blacklist proposal."},"getBlacklistTimelockDuration()":{"notice":"Gets the current duration of the blacklist timelock."},"getEmergencyController()":{"notice":"Returns the address of the EmergencyController managing this contract."},"isBlacklisted(address)":{"notice":"Checks if an account is on the blacklist."},"isEmergencyPaused()":{"notice":"Checks if the contract is effectively paused, either locally or by the global EmergencyController."},"isMinter(address)":{"notice":"Checks if an account has the minter role."},"mint(address,uint256)":{"notice":"Creates new tokens and assigns them to an account."},"name()":{"notice":"Returns the name of the token."},"owner()":{"notice":"Returns the address of the current owner."},"pause()":{"notice":"Pauses all token transfers, minting, and burning."},"paused()":{"notice":"Checks if the token is currently paused."},"recoverTokens(address,uint256)":{"notice":"Recovers other ERC20 tokens mistakenly sent to this contract."},"removeMinter(address)":{"notice":"Revokes the minter role from an account."},"setBlacklistTimelockDuration(uint256)":{"notice":"Sets a new duration for the blacklist timelock."},"setCap(uint256)":{"notice":"Sets a new maximum total supply for the token."},"setEmergencyController(address)":{"notice":"Sets or updates the address of the EmergencyController."},"symbol()":{"notice":"Returns the symbol of the token."},"transferTokenOwnership(address)":{"notice":"Transfers ownership of the token contract."},"unblacklist(address)":{"notice":"Removes an account from the blacklist."},"unpause()":{"notice":"Resumes token transfers, minting, and burning."}},"version":1}},"settings":{"remappings":["@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/","@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/","ds-test/=lib/forge-std/lib/ds-test/src/","erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/","forge-std/=lib/forge-std/src/","openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/","openzeppelin-contracts/=lib/openzeppelin-contracts/","openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/"],"optimizer":{"enabled":true,"runs":200},"metadata":{"bytecodeHash":"ipfs"},"compilationTarget":{"contracts/core/interfaces/IpREWAToken.sol":"IpREWAToken"},"evmVersion":"paris","libraries":{},"viaIR":true},"sources":{"contracts/core/interfaces/IpREWAToken.sol":{"keccak256":"0x5e2e7acd4df5700f8038d2d3e6da020ee7ad8354973360a4dac947b6218c9132","urls":["bzz-raw://e4160731c47fbcc5bd8d9547855e51ee26c2093e8f39c053e5abad763cd9c89c","dweb:/ipfs/QmVH6HXqHWgw2mKQB31Shxov3UuCt8a5mT2a3D4XR8wHKh"],"license":"MIT"},"contracts/interfaces/IEmergencyAware.sol":{"keccak256":"0x679e6cdc57c8b9d75f1928e9767e56a9ad812900dccf3e0a92aa87814324cf5a","urls":["bzz-raw://3219a26e6afbc417ec0e89639bbc028d99ba5fa1b32b2df25310e2df758d4b7e","dweb:/ipfs/QmcLE2ZTDr15JcGkKMDDfjKEcUhuDbfMyFoG4c8CV8oPrh"],"license":"MIT"},"lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol":{"keccak256":"0x0e1f0f5f62f67a881cd1a9597acbc0a5e4071f3c2c10449a183b922ae7272e3f","urls":["bzz-raw://c25f742ff154998d19a669e2508c3597b363e123ce9144cd0fcf6521229f401f","dweb:/ipfs/QmQXRuFzStEWqeEPbhQU6cAg9PaSowxJVo4PDKyRod7dco"],"license":"MIT"}},"version":1},"id":8}
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "addMinter",
+      "inputs": [
+        {
+          "name": "minterAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "allowance",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "spender",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "approve",
+      "inputs": [
+        {
+          "name": "spender",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "balanceOf",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "blacklist",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "burn",
+      "inputs": [
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "burnFrom",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "cancelBlacklistProposal",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "cap",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "currentCap",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "checkEmergencyStatus",
+      "inputs": [
+        {
+          "name": "operation",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "allowed",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "decimals",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "emergencyShutdown",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "executeBlacklist",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getBlacklistProposal",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "proposalExists",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "executeAfterTimestamp",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "timeRemainingSec",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBlacklistTimelockDuration",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "durationSeconds",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getEmergencyController",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "controller",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isBlacklisted",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "isAccBlacklisted",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isEmergencyPaused",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "isPaused",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isMinter",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "isAccMinter",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "mint",
+      "inputs": [
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "name",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "owner",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "ownerAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "pause",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "paused",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "isTokenPaused",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "recoverTokens",
+      "inputs": [
+        {
+          "name": "tokenAddress",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "removeMinter",
+      "inputs": [
+        {
+          "name": "minterAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setBlacklistTimelockDuration",
+      "inputs": [
+        {
+          "name": "newDurationSeconds",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setCap",
+      "inputs": [
+        {
+          "name": "newCapAmount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setEmergencyController",
+      "inputs": [
+        {
+          "name": "controller",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "symbol",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalSupply",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "transfer",
+      "inputs": [
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "transferFrom",
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "transferTokenOwnership",
+      "inputs": [
+        {
+          "name": "newOwnerAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "unblacklist",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "unpause",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "Approval",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "spender",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BlacklistCancelled",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "canceller",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BlacklistProposed",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "executeAfter",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "proposer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BlacklistStatusChanged",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "blacklisted",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        },
+        {
+          "name": "operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BlacklistTimelockDurationUpdated",
+      "inputs": [
+        {
+          "name": "oldDuration",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "newDuration",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "updater",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "CapUpdated",
+      "inputs": [
+        {
+          "name": "oldCap",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "newCap",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "updater",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "EmergencyShutdownHandled",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
+        },
+        {
+          "name": "caller",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "EmergencyStatusChecked",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
+        },
+        {
+          "name": "operation",
+          "type": "bytes4",
+          "indexed": false,
+          "internalType": "bytes4"
+        },
+        {
+          "name": "allowed",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MinterStatusChanged",
+      "inputs": [
+        {
+          "name": "minter",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "status",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        },
+        {
+          "name": "operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "TokenOwnershipTransferred",
+      "inputs": [
+        {
+          "name": "previousOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "newOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "TokenRecovered",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Transfer",
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "checkEmergencyStatus",
+      "inputs": [
+        {
+          "name": "operation",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "allowed",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "emergencyShutdown",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getEmergencyController",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "controller",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isEmergencyPaused",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "isPaused",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "setEmergencyController",
+      "inputs": [
+        {
+          "name": "controller",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "EmergencyShutdownHandled",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
+        },
+        {
+          "name": "caller",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "EmergencyStatusChecked",
+      "inputs": [
+        {
+          "name": "emergencyLevel",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
+        },
+        {
+          "name": "operation",
+          "type": "bytes4",
+          "indexed": false,
+          "internalType": "bytes4"
+        },
+        {
+          "name": "allowed",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

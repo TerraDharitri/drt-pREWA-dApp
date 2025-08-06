@@ -2,24 +2,34 @@
 import { useAccount } from "wagmi";
 import { ConnectWalletMessage } from "@/components/web3/ConnectWalletMessage";
 import { UserBalance } from "@/components/web3/UserBalance";
-import { UserStakingSummary } from "@/components/web3/staking/UserStakingSummary";
+import { DashboardManager } from "@/components/web3/dashboard/DashboardManager";
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
 
   if (!isConnected || !address) {
-    return <ConnectWalletMessage />;
+    return (
+      <div className="space-y-8 mt-20">
+        <div className="text-center">
+          <h1 className="text-greyscale-900 dark:text-dark-text-primary text-3xl font-bold">Dashboard</h1>
+          <p className="text-greyscale-400 dark:text-dark-text-secondary">Monitor your balances, staking positions, and liquidity pools.</p>
+        </div>
+        <ConnectWalletMessage />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Your Personal Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <UserBalance userAddress={address} />
-        {/* You can add more summary cards here */}
+    <div className="space-y-8 mt-20">
+      <div className="text-center">
+        <h1 className="text-greyscale-900 dark:text-dark-text-primary mb-2 text-3xl font-bold">Dashboard</h1>
+        <p className="text-greyscale-400 dark:text-dark-text-secondary">Monitor your balances, staking positions, and liquidity pools.</p>
       </div>
-      <hr className="my-8"/>
-      <UserStakingSummary />
+
+      <UserBalance userAddress={address} />
+
+      {/* Render the new tabbed dashboard manager */}
+      <DashboardManager />
     </div>
   );
 }

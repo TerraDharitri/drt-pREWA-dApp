@@ -1,51 +1,33 @@
+// src/app/(admin)/parameters/page.tsx
+
 "use client";
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/Button";
+import React from 'react';
+import { useIsAdmin } from '@/hooks/useAdmin';   // Corrected hook name
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";   // Corrected casing
 import { Input } from "@/components/ui/Input";
-import { useAdmin } from '@/hooks/useAdmin';
 
+// Placeholder component body
 export default function ParametersPage() {
-    const { executeAdminTask, isLoading } = useAdmin();
-    const [apr, setApr] = useState('');
-    const [lpToken, setLpToken] = useState('');
-    const [lpApr, setLpApr] = useState('');
+  const { isAdmin, isLoading } = useIsAdmin(); // Corrected hook usage
 
-    const handleSetApr = () => {
-        executeAdminTask('TokenStaking', 'setBaseAnnualPercentageRate', [BigInt(apr)]);
-    };
+  if (isLoading) return <div>Loading permissions...</div>;
+  if (!isAdmin) return <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>;
 
-    const handleAddPool = () => {
-        executeAdminTask('LPStaking', 'addPool', [lpToken, BigInt(lpApr)]);
-    };
-
-    return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">System Parameters</h1>
-            <Card className="bg-gray-800 border-gray-700">
-                <CardHeader><CardTitle>Token Staking: Base APR</CardTitle></CardHeader>
-                <CardContent className="flex gap-4 items-end">
-                    <div className="flex-grow">
-                        <label>New Base APR (BPS)</label>
-                        <Input value={apr} onChange={e => setApr(e.target.value)} className="bg-gray-700 border-gray-600" />
-                    </div>
-                    <Button onClick={handleSetApr} disabled={isLoading || !apr}>Update</Button>
-                </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-                <CardHeader><CardTitle>LP Staking: Add Pool</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                     <div>
-                        <label>LP Token Address</label>
-                        <Input value={lpToken} onChange={e => setLpToken(e.target.value)} placeholder="0x..." className="bg-gray-700 border-gray-600" />
-                     </div>
-                     <div>
-                        <label>Base APR (BPS)</label>
-                        <Input value={lpApr} onChange={e => setLpApr(e.target.value)} placeholder="e.g., 1000 for 10%" className="bg-gray-700 border-gray-600" />
-                     </div>
-                    <Button onClick={handleAddPool} disabled={isLoading || !lpToken || !lpApr}>Add Pool</Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
+  return (
+    <div>
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Protocol Parameters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Admin-only parameter settings.</p>
+           <div className="mt-4 space-y-4">
+            <Input label="Slippage Tolerance" placeholder="50" />
+            <Button>Update Parameter</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

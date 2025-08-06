@@ -1,11 +1,19 @@
+// src/hooks/useTokenApproval.ts
+
 "use client";
-import React, { useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useSimulateContract, useWaitForTransactionReceipt } from 'wagmi';
-import { erc20Abi, Address } from 'viem';
+import React, { useEffect, useRef } from 'react';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { erc20Abi, Address, maxUint256, BaseError } from 'viem';
 import toast from 'react-hot-toast';
+
+interface ApproveOptions {
+  onSuccess?: () => void;
+}
 
 export const useTokenApproval = (tokenAddress?: Address, spenderAddress?: Address) => {
   const { address: accountAddress } = useAccount();
+  const toastIdRef = useRef<string | undefined>();
+  const onSuccessCallbackRef = useRef<(() => void) | undefined>();
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenAddress,
@@ -15,47 +23,59 @@ export const useTokenApproval = (tokenAddress?: Address, spenderAddress?: Addres
     query: { enabled: !!accountAddress && !!tokenAddress && !!spenderAddress },
   });
 
-  const { data: simulateApproveData } = useSimulateContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: 'approve',
-    args: [spenderAddress!, BigInt(2**256 - 1)],
-    query: { enabled: !!tokenAddress && !!spenderAddress },
-  });
-
-  const { writeContractAsync, data: hash, isPending: isApprovalLoading } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending: isApprovalLoading, error: writeError, reset } = useWriteContract();
   
-  const approve = async () => {
-    if (!simulateApproveData?.request) {
-      toast.error("Approval failed: Cannot prepare transaction.");
+  const approve = async (options?: ApproveOptions) => {
+    if (!tokenAddress || !spenderAddress) {
+      toast.error("Approval failed: Contract addresses not available.");
       return;
     }
-    const toastId = toast.loading('Waiting for approval signature...');
+
+    onSuccessCallbackRef.current = options?.onSuccess; 
+    
+    toastIdRef.current = toast.loading('Waiting for approval signature...');
     try {
-      await writeContractAsync(simulateApproveData.request);
-      toast.loading('Processing approval...', { id: toastId });
+      await writeContractAsync({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [spenderAddress, maxUint256],
+      });
     } catch (e: any) {
-      toast.error(`Approval failed: ${e.shortMessage || e.message}`, { id: toastId });
+      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Approval rejected.");
+      toast.error(errorMsg, { id: toastIdRef.current });
+      toastIdRef.current = undefined;
     }
   };
 
-  const { isLoading: isConfirming, isSuccess, isError } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess, isError, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
-  // CORRECTED: Use useEffect to handle side-effects
   useEffect(() => {
-    if (isSuccess) {
-        toast.success('Approval successful!', { id: 'approve-toast' });
-        refetchAllowance();
-    }
-    if (isError) {
-        toast.error('Approval transaction failed.', { id: 'approve-toast' });
-    }
-  }, [isSuccess, isError, refetchAllowance]);
+    const toastId = toastIdRef.current;
+    if (!hash || !toastId) return;
 
-  return {
-    allowance,
-    approve,
-    isLoading: isApprovalLoading || isConfirming,
-    refetchAllowance,
-  };
+    if (isConfirming) {
+        toast.loading('Processing approval...', { id: toastId });
+    } else if (isSuccess) {
+      toast.success('Approval successful!', { id: toastId });
+      refetchAllowance();
+      
+      if (onSuccessCallbackRef.current) {
+        onSuccessCallbackRef.current();
+      }
+
+      reset(); 
+      toastIdRef.current = undefined; 
+      onSuccessCallbackRef.current = undefined;
+    } else if (isError) {
+      const error = receiptError || writeError;
+      const errorMsg = error instanceof BaseError ? error.shortMessage : (error?.message || "Approval transaction failed.");
+      toast.error(errorMsg, { id: toastId });
+      reset(); 
+      toastIdRef.current = undefined;
+      onSuccessCallbackRef.current = undefined;
+    }
+  }, [isConfirming, isSuccess, isError, hash, refetchAllowance, receiptError, writeError, reset]);
+
+  return { allowance, approve, isLoading: isApprovalLoading || isConfirming, refetchAllowance };
 };

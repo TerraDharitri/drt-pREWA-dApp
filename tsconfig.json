@@ -28,7 +28,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "src/providers/client-side-web3-provider.tsx", "src/components/ui/Button.tsx", "src/hooks/useIsVestingOwner.ts-disabled"  ],
   "exclude": [
     "node_modules",
     "contracts",

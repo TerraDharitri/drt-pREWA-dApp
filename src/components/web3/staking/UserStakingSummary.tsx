@@ -1,50 +1,79 @@
 "use client";
-
-import { useAccount, useReadContract } from "wagmi";
-import { pREWAAddresses, pREWAAbis } from "@/constants";
-import { Spinner } from "@/components/ui/Spinner";
+import React from "react"; // <-- FIX: Add this import statement
+import { useReadStakingPositions } from "@/hooks/useReadStakingPositions";
+import { StakingPositionRow } from "./StakingPositionRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { StakingPositionCard } from "./StakingPositionCard";
+import { Spinner } from "@/components/ui/Spinner";
 
-export function UserStakingSummary() {
-  const { address, chainId } = useAccount();
-  const contractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.TokenStaking : undefined;
-  
-  const { data: positionCount, isLoading } = useReadContract({
-      address: contractAddress,
-      abi: pREWAAbis.TokenStaking,
-      functionName: 'getPositionCount',
-      args: [address!],
-      query: { 
-        enabled: !!address && !!contractAddress,
-        refetchInterval: 30000, // Refetch count every 30s
-      }
-  });
+// --- FIX: Add a prop to pass the total count to the parent dashboard ---
+interface UserStakingSummaryProps {
+  onPositionsLoaded?: (totalCount: number) => void;
+}
 
-  if (!address) return null;
-  if (isLoading) return <Card><CardHeader><CardTitle>Your Staking Positions</CardTitle></CardHeader><CardContent><div className="flex justify-center"><Spinner /></div></CardContent></Card>;
-  if (!positionCount || positionCount === 0n) {
+export function UserStakingSummary({ onPositionsLoaded }: UserStakingSummaryProps) {
+  const { positions, isLoading, isError } = useReadStakingPositions();
+
+  // --- FIX: Use an effect to notify the parent of the total count ---
+  React.useEffect(() => {
+    if (!isLoading && onPositionsLoaded) {
+      onPositionsLoaded(positions.length);
+    }
+  }, [isLoading, positions, onPositionsLoaded]);
+
+  const activePositions = positions.filter(p => p.active);
+
+  const renderContent = () => {
+    if (isLoading) {
       return (
-          <Card>
-              <CardHeader><CardTitle>Your Staking Positions</CardTitle></CardHeader>
-              <CardContent>
-                  <p>You have no active staking positions.</p>
-              </CardContent>
-          </Card>
+        <div className="flex items-center justify-center p-8">
+          <Spinner />
+          <span className="ml-2">Loading your staking positions...</span>
+        </div>
       );
-  }
+    }
 
-  // Create an array from 0 to positionCount-1 to map over
-  const positionIds = Array.from({ length: Number(positionCount) }, (_, i) => i);
+    if (isError) {
+      return <p className="p-4 text-center text-error-100">Failed to load staking positions.</p>;
+    }
+
+    if (activePositions.length === 0) {
+      return <p className="p-4 text-center text-greyscale-400">You have no active staking positions.</p>;
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Position</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Tier ID</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Start Time</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">End Time</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Pending Rewards</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Expected Rewards</th>
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+            {activePositions.map((pos, index) => (
+              <StakingPositionRow key={pos.positionId.toString()} position={pos} index={index} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Your Staking Positions ({positionCount.toString()})</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {positionIds.map(id => (
-                <StakingPositionCard key={id} positionId={id} userAddress={address} />
-            ))}
-        </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Active Staking Positions ({activePositions.length})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {renderContent()}
+      </CardContent>
+    </Card>
   );
 }

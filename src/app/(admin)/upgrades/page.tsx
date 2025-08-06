@@ -1,50 +1,33 @@
+// src/app/(admin)/upgrades/page.tsx
+
 "use client";
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/Button";
+import React from 'react';
+import { useIsAdmin } from '@/hooks/useAdmin';   // Corrected hook name
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";   // Corrected casing
 import { Input } from "@/components/ui/Input";
-import { useAdmin } from '@/hooks/useAdmin';
 
+// Placeholder component body
 export default function UpgradesPage() {
-    const { executeAdminTask, isLoading } = useAdmin();
-    const [proxyAddress, setProxyAddress] = useState('');
-    const [implAddress, setImplAddress] = useState('');
+  const { isAdmin, isLoading } = useIsAdmin(); // Corrected hook usage
 
-    const handlePropose = () => {
-        executeAdminTask('ProxyAdmin', 'proposeUpgrade', [proxyAddress, implAddress]);
-    }
-    
-    const handleExecute = () => {
-        executeAdminTask('ProxyAdmin', 'executeUpgrade', [proxyAddress]);
-    }
+  if (isLoading) return <div>Loading permissions...</div>;
+  if (!isAdmin) return <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>;
 
-    return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Contract Upgrades (ProxyAdmin)</h1>
-            <Card className="bg-gray-800 border-gray-700">
-                <CardHeader><CardTitle>Propose Upgrade</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <label>Proxy Address to Upgrade</label>
-                        <Input value={proxyAddress} onChange={e => setProxyAddress(e.target.value)} placeholder="0x..." className="bg-gray-700 border-gray-600" />
-                    </div>
-                     <div>
-                        <label>New Implementation Address</label>
-                        <Input value={implAddress} onChange={e => setImplAddress(e.target.value)} placeholder="0x..." className="bg-gray-700 border-gray-600" />
-                    </div>
-                    <Button onClick={handlePropose} disabled={isLoading || !proxyAddress || !implAddress}>Propose</Button>
-                </CardContent>
-            </Card>
-             <Card className="bg-gray-800 border-gray-700">
-                <CardHeader><CardTitle>Execute Upgrade</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <label>Proxy Address</label>
-                        <Input value={proxyAddress} onChange={e => setProxyAddress(e.target.value)} placeholder="0x..." className="bg-gray-700 border-gray-600" />
-                    </div>
-                    <Button onClick={handleExecute} variant="destructive" disabled={isLoading || !proxyAddress}>Execute</Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
+  return (
+    <div>
+       <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Contract Upgrades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Admin-only contract upgrade functions.</p>
+          <div className="mt-4 space-y-4">
+            <Input label="New Implementation Address" placeholder="0x..." />
+            <Button>Propose Upgrade</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

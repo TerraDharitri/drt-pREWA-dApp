@@ -1,58 +1,115 @@
+// src/hooks/useStaking.ts
+
 "use client";
-import React, { useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useSimulateContract, useWaitForTransactionReceipt } from 'wagmi';
-import { pREWAAbis, pREWAAddresses } from '@/constants';
-import { parseUnits } from 'viem';
+import { useEffect, useRef } from 'react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { pREWAAddresses, pREWAAbis } from '@/constants';
+import { parseUnits, BaseError } from 'viem';
 import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useStaking = () => {
-    const { address, chainId } = useAccount();
-    const contractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.TokenStaking : undefined;
+  const { address, chainId } = useAccount();
+  const stakingContractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.TokenStaking : undefined;
+  
+  const queryClient = useQueryClient();
+  const toastIdRef = useRef<string | undefined>();
+  const actionRef = useRef<string>('');
+
+  const { data: hash, writeContractAsync, isPending, error: writeError, reset } = useWriteContract();
+
+  const stake = async (amount: string, tierId: number) => {
+    if (!stakingContractAddress) return toast.error("Staking contract not found on this network.");
+    const amountInWei = parseUnits(amount, 18);
+
+    actionRef.current = 'Stake';
+    toastIdRef.current = toast.loading('Waiting for staking signature...');
     
-    const { data: userPositionsCount, refetch: refetchPositionsCount } = useReadContract({
-        address: contractAddress,
+    try {
+      await writeContractAsync({
+        address: stakingContractAddress,
         abi: pREWAAbis.TokenStaking,
-        functionName: 'getPositionCount',
-        args: [address!],
-        query: { enabled: !!address }
-    });
-
-    const { writeContractAsync, isPending, data: hash } = useWriteContract();
-
-    const executeStakingTask = async (functionName: 'stake' | 'unstake' | 'claimRewards', args: any[], toastId: string) => {
-        try {
-            // @ts-ignore
-            const { request } = await useSimulateContract({ address: contractAddress, abi: pREWAAbis.TokenStaking, functionName, args });
-            toast.loading('Awaiting signature...', { id: toastId });
-            await writeContractAsync(request);
-            toast.loading('Processing transaction...', { id: toastId });
-        } catch (e: any) {
-            toast.error(`Task failed: ${e.shortMessage || e.message}`, { id: toastId });
-        }
+        functionName: 'stake',
+        args: [amountInWei, BigInt(tierId)],
+      });
+    } catch (e: any) {
+      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Staking transaction rejected.");
+      toast.error(errorMsg, { id: toastIdRef.current });
+      toastIdRef.current = undefined;
     }
+  };
+  
+  const unstake = async (positionId: string) => {
+    if (!stakingContractAddress) return toast.error("Staking contract not found on this network.");
 
-    const stake = (amount: string, tierId: number) => {
-        if (!amount || Number(amount) <= 0 || !Number.isInteger(tierId) || tierId < 0) {
-            toast.error("Invalid amount or tier ID."); return;
-        }
-        executeStakingTask('stake', [parseUnits(amount, 18), BigInt(tierId)], 'stake-toast');
-    };
+    actionRef.current = 'Unstake';
+    toastIdRef.current = toast.loading('Waiting for unstake signature...');
     
-    const unstake = (positionId: number) => executeStakingTask('unstake', [BigInt(positionId)], 'unstake-toast');
-    const claimRewards = (positionId: number) => executeStakingTask('claimRewards', [BigInt(positionId)], 'claim-toast');
+    try {
+      await writeContractAsync({
+        address: stakingContractAddress,
+        abi: pREWAAbis.TokenStaking,
+        functionName: 'unstake',
+        args: [BigInt(positionId)],
+      });
+    } catch (e: any) {
+      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Unstake transaction rejected.");
+      toast.error(errorMsg, { id: toastIdRef.current });
+      toastIdRef.current = undefined;
+    }
+  };
 
-    const { isLoading: isConfirming, isSuccess, isError } = useWaitForTransactionReceipt({ hash });
+  const claimRewards = async (positionId: string) => {
+    if (!stakingContractAddress) return toast.error("Staking contract not found on this network.");
+    
+    actionRef.current = 'Claim Rewards';
+    toastIdRef.current = toast.loading('Waiting for claim signature...');
 
-    // CORRECTED: Use useEffect to handle side-effects
-    useEffect(() => {
-        if (isSuccess) {
-            toast.success('Staking transaction confirmed!');
-            refetchPositionsCount(); // Refetch user data after a successful tx
-        }
-        if (isError) {
-            toast.error('Staking transaction failed.');
-        }
-    }, [isSuccess, isError, refetchPositionsCount]);
+    try {
+      await writeContractAsync({
+        address: stakingContractAddress,
+        abi: pREWAAbis.TokenStaking,
+        functionName: 'claimRewards',
+        args: [BigInt(positionId)],
+      });
+    } catch (e: any) {
+      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Claim transaction rejected.");
+      toast.error(errorMsg, { id: toastIdRef.current });
+      toastIdRef.current = undefined;
+    }
+  };
 
-    return { stake, unstake, claimRewards, userPositionsCount, isLoading: isPending || isConfirming };
+  const { isLoading: isConfirming, isSuccess, isError, error: receiptError } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    const toastId = toastIdRef.current;
+    if (!hash || !toastId) return;
+
+    const actionInProgress = actionRef.current;
+
+    if (isConfirming) {
+      toast.loading(`Processing ${actionInProgress}...`, { id: toastId });
+    } else if (isSuccess) {
+      toast.success(`${actionInProgress} successful!`, { id: toastId });
+      queryClient.invalidateQueries();
+      reset(); 
+      toastIdRef.current = undefined;
+      actionRef.current = '';
+    } else if (isError) {
+      const error = receiptError || writeError;
+      const errorMsg = error instanceof BaseError ? error.shortMessage : (error?.message || `${actionInProgress} failed.`);
+      toast.error(errorMsg, { id: toastId });
+      reset(); 
+      toastIdRef.current = undefined;
+      actionRef.current = '';
+    }
+  }, [isConfirming, isSuccess, isError, hash, receiptError, writeError, reset, queryClient]);
+
+
+  return {
+    stake,
+    unstake,
+    claimRewards,
+    isLoading: isPending || isConfirming,
+  };
 };

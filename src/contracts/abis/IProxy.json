@@ -1,1 +1,74 @@
-{"abi":[{"type":"function","name":"admin","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"changeAdmin","inputs":[{"name":"newAdmin","type":"address","internalType":"address"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"implementation","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"upgradeTo","inputs":[{"name":"newImplementation","type":"address","internalType":"address"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"upgradeToAndCall","inputs":[{"name":"newImplementation","type":"address","internalType":"address"},{"name":"data","type":"bytes","internalType":"bytes"}],"outputs":[],"stateMutability":"payable"}],"bytecode":{"object":"0x","sourceMap":"","linkReferences":{}},"deployedBytecode":{"object":"0x","sourceMap":"","linkReferences":{}},"methodIdentifiers":{"admin()":"f851a440","changeAdmin(address)":"8f283970","implementation()":"5c60da1b","upgradeTo(address)":"3659cfe6","upgradeToAndCall(address,bytes)":"4f1ef286"},"rawMetadata":"{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"admin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"changeAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"This interface provides functions to manage the proxy's implementation and admin, consistent with the EIP-1967 standard. It is used internally for type-safe interactions with proxy contracts managed by the `ProxyAdmin`.\",\"kind\":\"dev\",\"methods\":{\"admin()\":{\"details\":\"This function should be restricted to the proxy's admin.\",\"returns\":{\"_0\":\"The admin address.\"}},\"changeAdmin(address)\":{\"details\":\"This function should be restricted to the current admin.\",\"params\":{\"newAdmin\":\"The address of the new admin.\"}},\"implementation()\":{\"details\":\"This function should be restricted to the proxy's admin.\",\"returns\":{\"_0\":\"The logic contract address.\"}},\"upgradeTo(address)\":{\"details\":\"This function should be restricted to the proxy's admin.\",\"params\":{\"newImplementation\":\"The address of the new implementation contract.\"}},\"upgradeToAndCall(address,bytes)\":{\"details\":\"This is used to run an initializer function on the new implementation. This function should be restricted to the proxy's admin.\",\"params\":{\"data\":\"The calldata to be executed in the context of the new implementation.\",\"newImplementation\":\"The address of the new implementation contract.\"}}},\"title\":\"IProxy Interface\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"admin()\":{\"notice\":\"Returns the address of the current admin of the proxy.\"},\"changeAdmin(address)\":{\"notice\":\"Changes the admin of the proxy.\"},\"implementation()\":{\"notice\":\"Returns the address of the current implementation contract.\"},\"upgradeTo(address)\":{\"notice\":\"Upgrades the proxy to a new implementation contract.\"},\"upgradeToAndCall(address,bytes)\":{\"notice\":\"Upgrades the proxy to a new implementation contract and calls a function on it.\"}},\"notice\":\"Defines a standard interface for a Transparent Upgradeable Proxy.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/proxy/interfaces/IProxy.sol\":\"IProxy\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/\"],\"viaIR\":true},\"sources\":{\"contracts/proxy/interfaces/IProxy.sol\":{\"keccak256\":\"0xb757b3569b56b1980b1995662df3f5dd851a0cdde33d37e092fc6d82a553ef48\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5218f71a0472ee876f2129b5b5b97d7e7ee0f7417bbeaa78a734a8b467a01b46\",\"dweb:/ipfs/QmQS2CtYMoizuGAjJga6GzZSu96f99z6qcZR7HBBTmodYF\"]}},\"version\":1}","metadata":{"compiler":{"version":"0.8.28+commit.7893614a"},"language":"Solidity","output":{"abi":[{"inputs":[],"stateMutability":"view","type":"function","name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}]},{"inputs":[{"internalType":"address","name":"newAdmin","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"changeAdmin"},{"inputs":[],"stateMutability":"view","type":"function","name":"implementation","outputs":[{"internalType":"address","name":"","type":"address"}]},{"inputs":[{"internalType":"address","name":"newImplementation","type":"address"}],"stateMutability":"nonpayable","type":"function","name":"upgradeTo"},{"inputs":[{"internalType":"address","name":"newImplementation","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"stateMutability":"payable","type":"function","name":"upgradeToAndCall"}],"devdoc":{"kind":"dev","methods":{"admin()":{"details":"This function should be restricted to the proxy's admin.","returns":{"_0":"The admin address."}},"changeAdmin(address)":{"details":"This function should be restricted to the current admin.","params":{"newAdmin":"The address of the new admin."}},"implementation()":{"details":"This function should be restricted to the proxy's admin.","returns":{"_0":"The logic contract address."}},"upgradeTo(address)":{"details":"This function should be restricted to the proxy's admin.","params":{"newImplementation":"The address of the new implementation contract."}},"upgradeToAndCall(address,bytes)":{"details":"This is used to run an initializer function on the new implementation. This function should be restricted to the proxy's admin.","params":{"data":"The calldata to be executed in the context of the new implementation.","newImplementation":"The address of the new implementation contract."}}},"version":1},"userdoc":{"kind":"user","methods":{"admin()":{"notice":"Returns the address of the current admin of the proxy."},"changeAdmin(address)":{"notice":"Changes the admin of the proxy."},"implementation()":{"notice":"Returns the address of the current implementation contract."},"upgradeTo(address)":{"notice":"Upgrades the proxy to a new implementation contract."},"upgradeToAndCall(address,bytes)":{"notice":"Upgrades the proxy to a new implementation contract and calls a function on it."}},"version":1}},"settings":{"remappings":["@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/","@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/","ds-test/=lib/forge-std/lib/ds-test/src/","erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/","forge-std/=lib/forge-std/src/","openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/","openzeppelin-contracts/=lib/openzeppelin-contracts/","openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/"],"optimizer":{"enabled":true,"runs":200},"metadata":{"bytecodeHash":"ipfs"},"compilationTarget":{"contracts/proxy/interfaces/IProxy.sol":"IProxy"},"evmVersion":"paris","libraries":{},"viaIR":true},"sources":{"contracts/proxy/interfaces/IProxy.sol":{"keccak256":"0xb757b3569b56b1980b1995662df3f5dd851a0cdde33d37e092fc6d82a553ef48","urls":["bzz-raw://5218f71a0472ee876f2129b5b5b97d7e7ee0f7417bbeaa78a734a8b467a01b46","dweb:/ipfs/QmQS2CtYMoizuGAjJga6GzZSu96f99z6qcZR7HBBTmodYF"],"license":"MIT"}},"version":1},"id":48}
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "admin",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "changeAdmin",
+      "inputs": [
+        {
+          "name": "newAdmin",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "implementation",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "upgradeTo",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "upgradeToAndCall",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "data",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    }
+  ]
+}

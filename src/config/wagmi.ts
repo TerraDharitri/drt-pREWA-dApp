@@ -9,7 +9,7 @@ export const config = createConfig({
   chains: [bsc, bscTestnet],
   connectors: [
     injected({ target: 'metaMask' }),
-    walletConnect({ projectId, metadata: { name: 'drt-pREWA dApp', description: 'pREWA Protocol', url: 'https://www.dharitri.org', icons: [] } }),
+    walletConnect({ projectId, metadata: { name: 'drt-pREWA dApp', description: 'Dharitri Protocol', url: 'https://www.dharitri.org', icons: [] } }),
   ],
   transports: {
     [bsc.id]: http(process.env.NEXT_PUBLIC_BSC_RPC_URL),

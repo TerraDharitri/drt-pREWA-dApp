@@ -1,19 +1,21 @@
 "use client";
+import dynamic from 'next/dynamic';
+import React from 'react';
 
-import dynamic from "next/dynamic";
-import React from "react";
-
-// Dynamically import the Web3Provider with Server-Side Rendering (SSR) disabled.
-// This ensures that the component and all its children (including wagmi config)
-// are only rendered on the client-side (in the browser).
+// This is the key part of the solution.
+// We are dynamically importing the Web3Provider with the `ssr: false` option.
+// This tells Next.js to NOT render this component on the server.
 const Web3Provider = dynamic(
-  () => import("./Web3Provider").then((mod) => mod.Web3Provider),
+  () => import('./Web3Provider').then((mod) => mod.Web3Provider),
   {
     ssr: false,
-    loading: () => <p>Loading Web3 Provider...</p>, // Optional: a loading state
+    // You can add a loading component here if you wish
+    loading: () => <div style={{ minHeight: '100vh' }} />,
   }
 );
 
+// This component is safe to import in a Server Component (like RootLayout)
+// because it only renders the dynamically imported, client-only provider.
 export function ClientSideWeb3Provider({ children }: { children: React.ReactNode }) {
   return <Web3Provider>{children}</Web3Provider>;
 }

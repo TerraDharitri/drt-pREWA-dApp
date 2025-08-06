@@ -1,33 +1,34 @@
 "use client";
 
-import React from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { Button } from '@/components/ui/Button';
-import { formatAddress } from '@/lib/web3-utils';
+import { useEffect } from 'react';
+import { ConnectKitButton, useModal } from "connectkit";
+import { useConnect } from 'wagmi';
 
-export function ConnectWalletButton() {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending, error } = useConnect();
-  const { disconnect } = useDisconnect();
+/**
 
-  if (isConnected) {
-    return (
-      <Button onClick={() => disconnect()} variant="outline">
-        {formatAddress(address)}
-      </Button>
-    );
-  }
+    A wrapper for the ConnectKitButton that includes a workaround for a common bug
 
-  // Find the MetaMask connector specifically, or fall back to the first available connector.
-  const metaMaskConnector = connectors.find(c => c.id === 'io.metamask');
-  const primaryConnector = metaMaskConnector || connectors[0];
+    where the modal does not close after a successful connection.
 
-  return (
-    <Button 
-      onClick={() => connect({ connector: primaryConnector })} 
-      disabled={isPending}
-    >
-      {isPending ? 'Connecting...' : 'Connect Wallet'}
-    </Button>
-  );
+    It monitors the connection status and manually closes the modal once the
+
+    connection is established.
+    */
+    export function ConnectWalletButton() {
+    // Hook to get the current connection status from wagmi
+    const { isConnected } = useConnect();
+
+// Hook to control the ConnectKit modal (open/close)
+const { setOpen } = useModal();
+
+useEffect(() => {
+// This effect runs whenever the connection status changes.
+// If the wallet is connected, we ensure the modal is closed.
+if (isConnected) {
+setOpen(false);
+}
+}, [isConnected, setOpen]);
+
+// Render the standard ConnectKit button. Our logic will handle closing it.
+return <ConnectKitButton />;
 }

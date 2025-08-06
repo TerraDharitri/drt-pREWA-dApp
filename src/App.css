@@ -1,0 +1,137 @@
+/* General App Layout */
+body {
+    font-family: 'Times New Roman', Times, serif;
+    background-color: #fdfdfa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.donation-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
+.donation-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
+
+.donation-header h1 {
+    font-size: 2.5rem;
+    color: #006400; /* Dark Green */
+}
+
+.account-info {
+    font-size: 0.9rem;
+    color: #555;
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+/* Form Styling */
+.donation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #444;
+}
+
+.form-group select, .form-group input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+button {
+    padding: 12px 20px;
+    background-color: #4da30a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+    background-color: #3b7e08;
+}
+
+.message-area {
+    margin-top: 1rem;
+    text-align: center;
+    padding: 10px;
+    background-color: #eef;
+    border: 1px solid #cce;
+    border-radius: 4px;
+    word-break: break-word;
+}
+
+/* Certificate Styling */
+.certificate-section, .dashboard-section {
+    margin-top: 3rem;
+    border-top: 1px solid #eee;
+    padding-top: 2rem;
+}
+
+.certificate {
+    border: 2px solid #006400;
+    padding: 2rem;
+    background-color: #fff;
+}
+
+.cert-header { text-align: center; }
+.cert-logo { max-width: 100px; margin: 1rem 0; }
+.cert-header h1 { margin: 0; }
+.tx-hash a { color: #0068e7; text-decoration: none; word-break: break-all; }
+.presented-to { margin-top: 2rem; text-align: center; }
+.donor-address { text-align: center; font-weight: bold; font-family: monospace; font-size: 1.1rem; word-break: break-all; }
+.recognition-text, .quote { margin: 1.5rem 0; text-align: justify; }
+.quote { font-style: italic; }
+.donation-details { margin-top: 2rem; }
+.cert-footer { display: flex; align-items: center; margin-top: 2rem; gap: 1rem; }
+.footer-text a { word-break: break-all; }
+
+/* Dashboard Styling */
+.dashboard-table-container {
+    overflow-x: auto;
+}
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+.dashboard-table th, .dashboard-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+.dashboard-table th {
+    background-color: #f2f2f2;
+}
+.dashboard-table a {
+    color: #0068e7;
+}

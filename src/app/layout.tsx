@@ -1,32 +1,32 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-// CORRECTED: Import the new client-side provider
-import { ClientSideWeb3Provider } from "@/providers/client-side-web3-provider";
+// This import is now safe because the component itself handles the dynamic loading
+import { ClientSideWeb3Provider } from "@/providers/client-side-web3-provider"; 
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import "@/styles/globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "drt-pREWA Protocol",
-  description: "The official dApp for the pREWA Protocol for staking and liquidity.",
+  title: "Dharitri pREWA Protocol",
+  description: "The official dApp for the pREWA Protocol for staking, swapping, and liquidity.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode; }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        {/* CORRECTED: Use the new provider here */}
-        <ClientSideWeb3Provider>
-          <div className="flex flex-col min-h-screen">
-            {children}
-          </div>
-          <Toaster position="bottom-right" containerClassName="toast-container"/>
-        </ClientSideWeb3Provider>
+      <body className={`${inter.variable} bg-background text-foreground font-sans antialiased`}>
+        <ThemeProvider>
+          <ClientSideWeb3Provider>
+            <div className="flex min-h-screen flex-col">{children}</div>
+            <Toaster position="bottom-right" containerClassName="toast-container" />
+          </ClientSideWeb3Provider>
+        </ThemeProvider>
       </body>
     </html>
   );

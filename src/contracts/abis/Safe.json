@@ -1,0 +1,12 @@
+{
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getOwners",
+      "outputs": [{ "name": "", "type": "address[]" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}
