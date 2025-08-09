@@ -1,37 +1,35 @@
 // src/providers/SafeProvider.tsx
 
 "use client";
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import SafeAppsSDK, { SafeInfo } from '@safe-global/safe-apps-sdk';
 import { SafeAppProvider } from '@safe-global/safe-apps-provider';
 import { EIP1193Provider } from 'viem';
 
-// Define the shape of our context
 interface SafeContextType {
   sdk: SafeAppsSDK | null;
   safe: SafeInfo | null;
   isSafe: boolean;
   safeProvider: EIP1193Provider | null;
+  isSafeReady: boolean; // <-- ADD THIS: To track if the check is complete
 }
 
-// Create the context with a default value
 const SafeContext = createContext<SafeContextType>({
   sdk: null,
   safe: null,
   isSafe: false,
   safeProvider: null,
+  isSafeReady: false, // <-- ADD THIS: Default to false
 });
 
-// Create a custom hook for easy access to the context
 export const useSafe = () => useContext(SafeContext);
 
-// Create the provider component
 export const SafeProvider = ({ children }: { children: ReactNode }) => {
   const [sdk, setSdk] = useState<SafeAppsSDK | null>(null);
   const [safe, setSafe] = useState<SafeInfo | null>(null);
   const [isSafe, setIsSafe] = useState(false);
   const [safeProvider, setSafeProvider] = useState<EIP1193Provider | null>(null);
+  const [isSafeReady, setIsSafeReady] = useState(false); // <-- ADD THIS
 
   useEffect(() => {
     const initSafe = async () => {
@@ -43,14 +41,14 @@ export const SafeProvider = ({ children }: { children: ReactNode }) => {
           setSdk(safeSDK);
           setSafe(safeInfo);
           setIsSafe(true);
-          
-          // FIX: Use a type assertion to tell TypeScript that SafeAppProvider is compatible with EIP1193Provider.
-          // This resolves the complex type mismatch between the two libraries.
           setSafeProvider(new SafeAppProvider(safeInfo, safeSDK) as EIP1193Provider);
         }
       } catch (error) {
         console.log("Not running in a Safe App context.");
         setIsSafe(false);
+      } finally {
+        // <-- ADD THIS: Mark the check as complete, regardless of outcome
+        setIsSafeReady(true);
       }
     };
 
@@ -58,7 +56,7 @@ export const SafeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <SafeContext.Provider value={{ sdk, safe, isSafe, safeProvider }}>
+    <SafeContext.Provider value={{ sdk, safe, isSafe, safeProvider, isSafeReady }}>
       {children}
     </SafeContext.Provider>
   );

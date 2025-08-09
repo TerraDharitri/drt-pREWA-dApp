@@ -3,46 +3,42 @@
 "use client";
 import { useAccount, useReadContract } from "wagmi";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
-import { Abi, Address } from "viem";
-import { useSafe } from "@/providers/SafeProvider";
-import { safeAbi } from "@/contracts/abis/Safe"; // Import the typed ABI directly
+import { Address } from "viem";
+import { useMemo } from 'react';
 
+/**
+ * Checks if the currently connected address is the owner of the VestingFactory contract.
+ * This is designed to work within the Safe App context where the connected address
+ * will be the Safe's own address.
+ */
 export const useIsVestingFactoryOwner = () => {
   const { address: connectedAddress, chainId } = useAccount();
-  const { isSafe: isSafeContext, safe } = useSafe();
 
-  const addresses = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses] : undefined;
-  const vestingFactoryAddress = addresses?.VestingFactory;
-  const adminSafeAddress = addresses?.ProtocolAdminSafe;
+  const vestingFactoryAddress = chainId 
+    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.VestingFactory 
+    : undefined;
 
-  const { data: factoryOwner, isLoading: isLoadingFactoryOwner } = useReadContract({
+  const { data: factoryOwner, isLoading, isSuccess } = useReadContract({
     address: vestingFactoryAddress,
     abi: pREWAAbis.VestingFactory,
     functionName: 'owner',
-    query: { enabled: !!vestingFactoryAddress }
+    query: { 
+      // Only run the query if we have the necessary addresses
+      enabled: !!vestingFactoryAddress && !!connectedAddress,
+    }
   });
 
-  const isSafeTheFactoryOwner = !!factoryOwner &&
-                                !!adminSafeAddress &&
-                                typeof factoryOwner === 'string' &&
-                                factoryOwner.toLowerCase() === adminSafeAddress.toLowerCase();
-
-  const { data: safeOwners, isLoading: isLoadingSafeOwners } = useReadContract({
-    address: adminSafeAddress,
-    abi: safeAbi, // FIX: Use the directly imported, strongly-typed ABI
-    functionName: 'getOwners',
-    query: { enabled: isSafeTheFactoryOwner && !!connectedAddress }
-  });
-
-  const isConnectedAddressASafeOwner = !!connectedAddress &&
-                                       !!safeOwners &&
-                                       // This will now compile correctly because `safeOwners` is known to be an array
-                                       safeOwners.some((owner: Address) => owner.toLowerCase() === connectedAddress.toLowerCase());
-
-  const isOwner = isSafeTheFactoryOwner && isConnectedAddressASafeOwner;
+  // Use useMemo to prevent re-calculation on every render.
+  // The logic is now a direct comparison.
+  const isOwner = useMemo(() => {
+    if (!isSuccess || !factoryOwner || !connectedAddress) {
+      return false;
+    }
+    return (factoryOwner as Address).toLowerCase() === connectedAddress.toLowerCase();
+  }, [isSuccess, factoryOwner, connectedAddress]);
 
   return { 
     isOwner, 
-    isLoading: isLoadingFactoryOwner || isLoadingSafeOwners
+    isLoading
   };
 };

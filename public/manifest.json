@@ -1,0 +1,11 @@
+{
+  "name": "Dharitri Protocol",
+  "description": "pREWA vesting & admin",
+  "iconPath": "images/graphics/logo/Dharitri Logo dark.svg",
+  "safe_apps_permissions": [
+    { "method": "eth_accounts", "description": "Read address (unused in Safe mode)" },
+    { "method": "getSafeInfo", "description": "Read current Safe" },
+    { "method": "getChainInfo", "description": "Read current chain" },
+    { "method": "SAFE_TX_BUILDER", "description": "Propose vesting transactions" }
+  ]
+}
