@@ -1,31 +1,30 @@
-// src/providers/Web3Provider.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
 import { config } from "@/config/wagmi";
 
-const inSafeApp = () =>
-  typeof window !== "undefined" && window.parent !== window;
-
-const queryClient = new QueryClient();
+// Keep a single QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
-  const safeMode = inSafeApp();
-
-  const content = useMemo(() => {
-    // Inside Safe: never render ConnectKit; no wallet prompts
-    if (safeMode) return children;
-
-    // Outside Safe: full wallet menu (injected, Coinbase, WC, Ledger)
-    return <ConnectKitProvider>{children}</ConnectKitProvider>;
-  }, [safeMode, children]);
-
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>{content}</QueryClientProvider>
+    // v2: use reconnectOnMount instead of autoConnect in createConfig
+    <WagmiProvider config={config} reconnectOnMount>
+      <QueryClientProvider client={queryClient}>
+        <ConnectKitProvider options={{ embedGoogleFonts: false }}>
+          {children}
+        </ConnectKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }

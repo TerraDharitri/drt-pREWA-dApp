@@ -1,11 +1,13 @@
 {
   "name": "Dharitri Protocol",
-  "description": "pREWA vesting & admin",
-  "iconPath": "images/graphics/logo/Dharitri Logo dark.svg",
+  "description": "The official dApp for the pREWA Protocol.",
+  "homepage_url": "https://prewa.dharitri.org",
+  "iconPath": "images/graphics/logo/icon-512.png",
+  "chains": [56, 97],
   "safe_apps_permissions": [
-    { "method": "eth_accounts", "description": "Read address (unused in Safe mode)" },
-    { "method": "getSafeInfo", "description": "Read current Safe" },
-    { "method": "getChainInfo", "description": "Read current chain" },
-    { "method": "SAFE_TX_BUILDER", "description": "Propose vesting transactions" }
+    { "method": "eth_accounts", "description": "Read the connected Safe address." },
+    { "method": "getSafeInfo", "description": "Read the connected Safe." },
+    { "method": "getChainInfo", "description": "Read the current chain." },
+    { "method": "SAFE_TX_BUILDER", "description": "Propose vesting transactions to your Safe." }
   ]
 }
