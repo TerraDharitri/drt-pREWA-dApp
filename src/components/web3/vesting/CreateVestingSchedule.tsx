@@ -10,12 +10,14 @@ import { useIsSafeOwner } from "@/hooks/useIsSafeOwner";
 import { useSafeProposal } from "@/hooks/useSafeProposal";
 import { pREWAAddresses } from "@/constants";
 
-// ✅ Use the real factory ABI (order: beneficiary, startTime, cliffDuration, duration, revocable, amount)
+const SECONDS_PER_DAY = 86_400;
+
+// Minimal ABI item for your factory from VestingFactory.json
+// function createVesting(address beneficiary, uint256 startTime, uint256 cliffDuration, uint256 duration, bool revocable, uint256 amount)
 const vestingFactoryAbi = [
   {
     type: "function",
     name: "createVesting",
-    stateMutability: "nonpayable",
     inputs: [
       { name: "beneficiary", type: "address" },
       { name: "startTime", type: "uint256" },
@@ -25,24 +27,12 @@ const vestingFactoryAbi = [
       { name: "amount", type: "uint256" },
     ],
     outputs: [{ name: "vestingAddress", type: "address" }],
+    stateMutability: "nonpayable",
   },
 ] as const;
 
 const inSafeApp = () =>
   typeof window !== "undefined" && window.parent !== window;
-
-// helpers
-const toSeconds = (days: string) => {
-  const d = Number(days || "0");
-  return Number.isFinite(d) && d > 0 ? BigInt(Math.floor(d * 86400)) : 0n;
-};
-
-const parseDateToUnix = (yyyyMmDd: string): bigint => {
-  if (!yyyyMmDd) return 0n;
-  // HTML date input gives yyyy-mm-dd
-  const ms = Date.parse(yyyyMmDd + "T00:00:00Z");
-  return Number.isFinite(ms) ? BigInt(Math.floor(ms / 1000)) : 0n;
-};
 
 export default function CreateVestingSchedule() {
   const { chainId } = useAccount();
@@ -51,15 +41,15 @@ export default function CreateVestingSchedule() {
   const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
   const { proposeTransaction, isProposing } = useSafeProposal();
 
-  // form state
+  // Form state
   const [beneficiary, setBeneficiary] = useState("");
-  const [amount, setAmount] = useState("");           // human (e.g. "200")
-  const [startDate, setStartDate] = useState("");     // yyyy-mm-dd
-  const [durationDays, setDurationDays] = useState("");
-  const [cliffDays, setCliffDays] = useState("");
+  const [amount, setAmount] = useState("");           // human amount, e.g. "100"
+  const [startDate, setStartDate] = useState("");     // yyyy-mm-dd (native date input)
+  const [durationDays, setDurationDays] = useState(""); // string days
+  const [cliffDays, setCliffDays] = useState("");       // string days
   const [revocable, setRevocable] = useState(true);
 
-  // resolve addresses per chain
+  // Resolve factory address per chain
   const vestingFactoryAddress = useMemo(() => {
     if (!chainId) return undefined;
     return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
@@ -72,7 +62,15 @@ export default function CreateVestingSchedule() {
     !vestingFactoryAddress ||
     !beneficiary ||
     !amount ||
-    !durationDays; // cliff can be 0
+    !durationDays; // cliff optional
+
+  const parseDateToUnix = (value: string) => {
+    if (!value) return 0n;
+    // value is yyyy-mm-dd from <input type="date">
+    const tsMs = Date.parse(`${value}T00:00:00Z`);
+    if (Number.isNaN(tsMs)) return 0n;
+    return BigInt(Math.floor(tsMs / 1000));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,48 +84,67 @@ export default function CreateVestingSchedule() {
         toast.error("Enter a valid beneficiary address.");
         return;
       }
-      if (!amount || Number(amount) <= 0) {
+      const amt = Number(amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
         toast.error("Enter a positive amount.");
         return;
       }
 
-      const start = parseDateToUnix(startDate);      // 0n allowed (start now)
-      const cliffSec = toSeconds(cliffDays);         // days -> seconds
-      const durationSec = toSeconds(durationDays);   // days -> seconds
-
-      if (durationSec === 0n) {
+      // Validate and convert days -> seconds
+      const durDays = parseInt(durationDays.trim(), 10);
+      if (!Number.isFinite(durDays) || durDays < 1) {
         toast.error("Vesting duration must be at least 1 day.");
         return;
       }
-      if (cliffSec > durationSec) {
+      const cliffDaysNum = cliffDays.trim() ? parseInt(cliffDays.trim(), 10) : 0;
+      if (!Number.isFinite(cliffDaysNum) || cliffDaysNum < 0) {
+        toast.error("Cliff must be a non-negative number of days.");
+        return;
+      }
+      if (cliffDaysNum > durDays) {
         toast.error("Cliff cannot be longer than the total duration.");
         return;
       }
 
-      // pREWA is 18 decimals – adjust if yours differs
+      const durationSecs = BigInt(durDays) * BigInt(SECONDS_PER_DAY);
+      const cliffSecs = BigInt(cliffDaysNum) * BigInt(SECONDS_PER_DAY);
+
+      // Optional start date (0 => start now / contract default)
+      const startUnix = parseDateToUnix(startDate);
+      if (startUnix > 0n) {
+        const todayZeroUtc = BigInt(Math.floor(Date.now() / 1000 / SECONDS_PER_DAY) * SECONDS_PER_DAY);
+        if (startUnix < todayZeroUtc) {
+          toast.error("Start date cannot be in the past.");
+          return;
+        }
+      }
+
+      // pREWA assumed 18 decimals; adjust if not
       const amountWei = parseUnits(amount, 18);
 
-      // ✅ Correct function & argument order for your factory
+      // Build calldata for factory.createVesting(...)
       const data = encodeFunctionData({
         abi: vestingFactoryAbi as any,
         functionName: "createVesting",
         args: [
           beneficiary as Address,
-          start,
-          cliffSec,
-          durationSec,
-          revocable,
-          amountWei,
+          startUnix,        // seconds (uint256)
+          cliffSecs,        // seconds (uint256)
+          durationSecs,     // seconds (uint256)
+          revocable,        // bool
+          amountWei,        // uint256
         ],
       }) as Hex;
 
+      // Propose to Safe
       await proposeTransaction({
-        to: vestingFactoryAddress,
-        data,          // string '0x…'
+        to: vestingFactoryAddress as Address,
+        data,
         value: "0",
       });
 
-      // optional: clear form
+      toast.success("Transaction proposed to Safe!");
+      // (Optional) clear after success
       // setBeneficiary(""); setAmount(""); setStartDate(""); setDurationDays(""); setCliffDays(""); setRevocable(true);
     } catch (err: any) {
       console.error(err);
@@ -143,7 +160,9 @@ export default function CreateVestingSchedule() {
       </div>
     );
   }
-  if (!safeMode && !isOwner) return null;
+  if (!safeMode && !isOwner) {
+    return null;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -170,10 +189,9 @@ export default function CreateVestingSchedule() {
 
       <div>
         <label className="block text-sm mb-1">Start Date (Optional)</label>
-        {/* ✅ real date picker (yyyy-mm-dd) */}
         <input
-          type="date"
           className="w-full rounded-md border px-3 py-2"
+          type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
@@ -183,7 +201,7 @@ export default function CreateVestingSchedule() {
         <label className="block text-sm mb-1">Duration (Days)</label>
         <input
           className="w-full rounded-md border px-3 py-2"
-          placeholder="e.g., 8"
+          placeholder="e.g., 365"
           inputMode="numeric"
           value={durationDays}
           onChange={(e) => setDurationDays(e.target.value)}
@@ -194,7 +212,7 @@ export default function CreateVestingSchedule() {
         <label className="block text-sm mb-1">Cliff (Days)</label>
         <input
           className="w-full rounded-md border px-3 py-2"
-          placeholder="e.g., 1"
+          placeholder="e.g., 90"
           inputMode="numeric"
           value={cliffDays}
           onChange={(e) => setCliffDays(e.target.value)}
