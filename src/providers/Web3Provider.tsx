@@ -1,25 +1,22 @@
 "use client";
 
-import React from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
-import { config } from "@/config/wagmi";
+import { config as wagmiConfig } from "@/config/wagmi";
+import { useEffect } from "react";
+import { reconnect } from "@wagmi/core"; // ⬅ add
 
-// Keep a single QueryClient instance
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    // If we’re inside Safe, the Safe connector exists and this will resolve immediately.
+    reconnect(wagmiConfig).catch(() => {});
+  }, []);
+
   return (
-    // v2: use reconnectOnMount instead of autoConnect in createConfig
-    <WagmiProvider config={config} reconnectOnMount>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ConnectKitProvider options={{ embedGoogleFonts: false }}>
           {children}
@@ -28,5 +25,3 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     </WagmiProvider>
   );
 }
-
-export default Web3Provider;

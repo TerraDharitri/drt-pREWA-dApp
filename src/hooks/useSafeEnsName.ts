@@ -1,23 +1,47 @@
-'use client';
+// src/hooks/useSafeEnsName.ts
+"use client";
 
-import { Address } from 'viem';
-import { useEnsName } from 'wagmi';
+import { useEffect, useState } from "react";
 
-export const chainSupportsEns = (chainId?: number) =>
-  chainId === 1 || chainId === 11155111;
+/**
+ * Safe ENS name resolver (defensive)
+ * - Never calls ENS on non-ENS chains (e.g., BSC 56, BSC Testnet 97)
+ * - Returns an object to match callers: { ensName, isLoading }
+ * - If you later want real ENS on mainnet, add the resolution where indicated
+ */
+export function useSafeEnsName(
+  address?: `0x${string}` | string,
+  chainId?: number
+) {
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-export function useSafeEnsName(address?: Address, currentChainId?: number) {
-  const enabled = !!address && chainSupportsEns(currentChainId);
+  useEffect(() => {
+    if (!address) {
+      setEnsName(null);
+      return;
+    }
 
-  const { data, isLoading, isFetching, error } = useEnsName({
-    address,
-    chainId: 1 as any, // force mainnet ENS resolution
-    query: { enabled, retry: 0 },
-  });
+    // If we have a chainId and it's not mainnet (1), skip ENS entirely.
+    // Using Number(chainId) avoids TS complaints when chainId's type is a literal union (e.g., 56 | 97).
+    if (typeof chainId === "number" && Number(chainId) !== 1) {
+      setEnsName(null);
+      return;
+    }
 
-  return {
-    ensName: enabled ? data ?? null : null,
-    isLoading: enabled && (isLoading || isFetching),
-    error: enabled ? error : undefined,
-  };
+    // If you want to actually resolve ENS on mainnet later,
+    // do it here with your viem/ethers client and remember to set isLoading accordingly.
+    // Example scaffold:
+    //
+    // setIsLoading(true);
+    // resolveEnsOnMainnet(address)
+    //   .then((name) => setEnsName(name ?? null))
+    //   .catch(() => setEnsName(null))
+    //   .finally(() => setIsLoading(false));
+
+    // For now, avoid any reverse lookup — just return null.
+    setEnsName(null);
+  }, [address, chainId]);
+
+  return { ensName, isLoading };
 }

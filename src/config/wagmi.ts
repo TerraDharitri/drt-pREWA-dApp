@@ -1,7 +1,7 @@
 // src/config/wagmi.ts
-import { createConfig, createStorage, http } from "wagmi";
+import { createConfig, http } from "wagmi";
 import { bsc, bscTestnet } from "wagmi/chains";
-import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
+import { injected, walletConnect, coinbaseWallet, safe } from "wagmi/connectors"; // ⬅ add 'safe'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
@@ -9,16 +9,22 @@ export const chains = [bsc, bscTestnet] as const;
 
 export const config = createConfig({
   chains,
-  // v2: no `autoConnect` here. Use `reconnectOnMount` on <WagmiProvider />.
   connectors: [
-    injected({ target: "metaMask", shimDisconnect: true }),
-    coinbaseWallet({ appName: "Dharitri Protocol" }), // keep it simple; v2 types are strict
+    // Safe connector first so it wins inside the Safe iframe
+    safe(),                                             // ⬅ new
+    injected({ target: "metaMask" }),
+    coinbaseWallet({ appName: "Dharitri Protocol" }),
     ...(projectId
       ? [
           walletConnect({
             projectId,
-            showQrModal: false, // let your UI handle QR
-            relayUrl: "wss://relay.walletconnect.com",
+            metadata: {
+              name: "Dharitri Protocol",
+              description: "pREWA vesting & admin",
+              url: "https://prewa.dharitri.org",
+              icons: [],
+            },
+            showQrModal: false,
           }),
         ]
       : []),
@@ -28,11 +34,9 @@ export const config = createConfig({
     [bscTestnet.id]: http(process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL),
   },
   multiInjectedProviderDiscovery: true,
-  storage: createStorage({
-    storage: typeof window !== "undefined" ? window.localStorage : undefined,
-  }),
 });
 
+// TS “Register” remains as you already have
 declare module "wagmi" {
   interface Register {
     config: typeof config;

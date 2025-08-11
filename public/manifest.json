@@ -1,8 +1,8 @@
 {
   "name": "Dharitri Protocol",
   "description": "The official dApp for the pREWA Protocol.",
+  "iconPath": "images/graphics/logo/Dharitri Logo dark.svg",
   "homepage_url": "https://prewa.dharitri.org",
-  "iconPath": "images/graphics/logo/icon-512.png",
   "chains": [56, 97],
   "safe_apps_permissions": [
     { "method": "eth_accounts", "description": "Read the connected Safe address." },
