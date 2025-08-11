@@ -1,4 +1,3 @@
-// src/components/web3/vesting/CreateVestingSchedule.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -11,7 +10,7 @@ import { useIsSafeOwner } from "@/hooks/useIsSafeOwner";
 import { useSafeProposal } from "@/hooks/useSafeProposal";
 import { pREWAAddresses } from "@/constants";
 
-// Your VestingFactory proxy takes createVesting(...) in seconds
+// ✅ Use the real factory ABI (order: beneficiary, startTime, cliffDuration, duration, revocable, amount)
 const vestingFactoryAbi = [
   {
     type: "function",
@@ -29,23 +28,42 @@ const vestingFactoryAbi = [
   },
 ] as const;
 
+const inSafeApp = () =>
+  typeof window !== "undefined" && window.parent !== window;
+
+// helpers
+const toSeconds = (days: string) => {
+  const d = Number(days || "0");
+  return Number.isFinite(d) && d > 0 ? BigInt(Math.floor(d * 86400)) : 0n;
+};
+
+const parseDateToUnix = (yyyyMmDd: string): bigint => {
+  if (!yyyyMmDd) return 0n;
+  // HTML date input gives yyyy-mm-dd
+  const ms = Date.parse(yyyyMmDd + "T00:00:00Z");
+  return Number.isFinite(ms) ? BigInt(Math.floor(ms / 1000)) : 0n;
+};
+
 export default function CreateVestingSchedule() {
   const { chainId } = useAccount();
-  const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
-  const { proposeTransaction, isProposing, isSafe } = useSafeProposal();
+  const safeMode = inSafeApp();
 
-  // --- form state ---
+  const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
+  const { proposeTransaction, isProposing } = useSafeProposal();
+
+  // form state
   const [beneficiary, setBeneficiary] = useState("");
-  const [amount, setAmount] = useState(""); // human amount, e.g. "100"
-  const [startDate, setStartDate] = useState(""); // <input type="date"> -> "YYYY-MM-DD"
+  const [amount, setAmount] = useState("");           // human (e.g. "200")
+  const [startDate, setStartDate] = useState("");     // yyyy-mm-dd
   const [durationDays, setDurationDays] = useState("");
   const [cliffDays, setCliffDays] = useState("");
   const [revocable, setRevocable] = useState(true);
 
+  // resolve addresses per chain
   const vestingFactoryAddress = useMemo(() => {
     if (!chainId) return undefined;
     return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
-      ?.VestingFactory as Address | undefined; // **proxy** address
+      ?.VestingFactory as Address | undefined;
   }, [chainId]);
 
   const disabled =
@@ -54,104 +72,78 @@ export default function CreateVestingSchedule() {
     !vestingFactoryAddress ||
     !beneficiary ||
     !amount ||
-    !durationDays ||
-    !cliffDays;
+    !durationDays; // cliff can be 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validations
-    if (!vestingFactoryAddress) {
-      toast.error("Unsupported network: VestingFactory not configured.");
-      return;
-    }
-    if (!/^0x[a-fA-F0-9]{40}$/.test(beneficiary)) {
-      toast.error("Enter a valid beneficiary address.");
-      return;
-    }
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      toast.error("Enter a positive amount.");
-      return;
-    }
-
-    // Convert date -> unix (seconds). If empty, 0 means "start now"
-    let startUnix = 0;
-    if (startDate) {
-      // startDate is "YYYY-MM-DD"; interpret as local midnight
-      const dt = new Date(`${startDate}T00:00:00`);
-      if (Number.isNaN(dt.getTime())) {
-        toast.error("Invalid start date.");
+    try {
+      if (!vestingFactoryAddress) {
+        toast.error("Unsupported network: VestingFactory not configured.");
         return;
       }
-      startUnix = Math.floor(dt.getTime() / 1000);
-    }
+      if (!/^0x[a-fA-F0-9]{40}$/.test(beneficiary)) {
+        toast.error("Enter a valid beneficiary address.");
+        return;
+      }
+      if (!amount || Number(amount) <= 0) {
+        toast.error("Enter a positive amount.");
+        return;
+      }
 
-    const duration = parseInt(durationDays, 10);
-    const cliff = parseInt(cliffDays, 10);
-    if (!Number.isFinite(duration) || duration <= 0) {
-      toast.error("Duration must be at least 1 day.");
-      return;
-    }
-    if (!Number.isFinite(cliff) || cliff < 0) {
-      toast.error("Cliff must be a non-negative number of days.");
-      return;
-    }
-    if (cliff > duration) {
-      toast.error("Cliff cannot be longer than duration.");
-      return;
-    }
+      const start = parseDateToUnix(startDate);      // 0n allowed (start now)
+      const cliffSec = toSeconds(cliffDays);         // days -> seconds
+      const durationSec = toSeconds(durationDays);   // days -> seconds
 
-    // Your pREWA token uses 18 decimals (adjust if different)
-    const amountWei = parseUnits(amount, 18);
+      if (durationSec === 0n) {
+        toast.error("Vesting duration must be at least 1 day.");
+        return;
+      }
+      if (cliffSec > durationSec) {
+        toast.error("Cliff cannot be longer than the total duration.");
+        return;
+      }
 
-    // Build calldata for the **proxy** factory
-    const data = encodeFunctionData({
-      abi: vestingFactoryAbi as any,
-      functionName: "createVesting",
-      args: [
-        beneficiary as Address,
-        BigInt(startUnix),
-        BigInt(cliff * 86400), // days -> seconds
-        BigInt(duration * 86400), // days -> seconds
-        revocable,
-        amountWei,
-      ],
-    }) as Hex;
+      // pREWA is 18 decimals – adjust if yours differs
+      const amountWei = parseUnits(amount, 18);
 
-    if (!isSafe) {
-      toast.error("Open this page inside your Safe to propose the transaction.");
-      return;
-    }
+      // ✅ Correct function & argument order for your factory
+      const data = encodeFunctionData({
+        abi: vestingFactoryAbi as any,
+        functionName: "createVesting",
+        args: [
+          beneficiary as Address,
+          start,
+          cliffSec,
+          durationSec,
+          revocable,
+          amountWei,
+        ],
+      }) as Hex;
 
-    const res = await proposeTransaction({
-      to: vestingFactoryAddress as Address, // **proxy**
-      data,
-      value: "0",
-    });
+      await proposeTransaction({
+        to: vestingFactoryAddress,
+        data,          // string '0x…'
+        value: "0",
+      });
 
-    if (res?.safeTxHash) {
-      toast.success("Transaction proposed to your Safe.");
-      // Optionally reset the form:
+      // optional: clear form
       // setBeneficiary(""); setAmount(""); setStartDate(""); setDurationDays(""); setCliffDays(""); setRevocable(true);
-    } else {
-      toast.error("Failed to propose transaction. Please try again.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.shortMessage ?? err?.message ?? "Failed to propose");
     }
   };
 
-  // Outside Safe, only owners (signers) should see the form; inside Safe we
-  // always allow proposing (it will be confirmed by the Safe policies).
-  if (!isSafe && isOwnerLoading) {
+  // Outside Safe, only owners can see the form
+  if (!safeMode && isOwnerLoading) {
     return (
       <div className="rounded-md border p-6 text-center text-sm opacity-70">
         Checking admin permissions…
       </div>
     );
   }
-  if (!isSafe && !isOwner) {
-    // Not in Safe and not an admin/signer: don’t show form.
-    return null;
-  }
+  if (!safeMode && !isOwner) return null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,10 +170,10 @@ export default function CreateVestingSchedule() {
 
       <div>
         <label className="block text-sm mb-1">Start Date (Optional)</label>
-        {/* native date picker */}
+        {/* ✅ real date picker (yyyy-mm-dd) */}
         <input
-          className="w-full rounded-md border px-3 py-2"
           type="date"
+          className="w-full rounded-md border px-3 py-2"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
@@ -191,7 +183,7 @@ export default function CreateVestingSchedule() {
         <label className="block text-sm mb-1">Duration (Days)</label>
         <input
           className="w-full rounded-md border px-3 py-2"
-          placeholder="e.g., 365"
+          placeholder="e.g., 8"
           inputMode="numeric"
           value={durationDays}
           onChange={(e) => setDurationDays(e.target.value)}
@@ -202,7 +194,7 @@ export default function CreateVestingSchedule() {
         <label className="block text-sm mb-1">Cliff (Days)</label>
         <input
           className="w-full rounded-md border px-3 py-2"
-          placeholder="e.g., 90"
+          placeholder="e.g., 1"
           inputMode="numeric"
           value={cliffDays}
           onChange={(e) => setCliffDays(e.target.value)}
