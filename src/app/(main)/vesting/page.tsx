@@ -2,7 +2,7 @@
 
 import { useAccount } from "wagmi";
 import { ConnectWalletMessage } from "@/components/web3/ConnectWalletMessage";
-import { CreateVestingSchedule } from "@/components/web3/vesting/CreateVestingSchedule";
+import CreateVestingSchedule from "@/components/web3/vesting/CreateVestingSchedule";
 import { UserVestingSummary } from "@/components/web3/vesting/UserVestingSummary";
 import { useIsSafeOwner } from "@/hooks/useIsSafeOwner";
 import { Spinner } from "@/components/ui/Spinner";
