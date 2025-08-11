@@ -1,106 +1,107 @@
-// src/hooks/useSafeProposal.ts
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import SafeAppsSDK, { type SafeInfo } from "@safe-global/safe-apps-sdk";
-import type { Address, Hex } from "viem";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import SafeAppsSDK, { BaseTransaction } from '@safe-global/safe-apps-sdk';
 
-type ProposeArgs = {
-  to: Address;
-  /** Calldata. If omitted, it will default to '0x' */
-  data?: Hex | `0x${string}` | string | undefined;
-  /** Wei value as string/bigint/number. If omitted, it will default to '0' */
-  value?: string | bigint | number | undefined;
+export type ProposeArgs = {
+  to: `0x${string}`;
+  data?: `0x${string}`;
+  value?: string; // decimal string in wei, default "0"
 };
 
-const inSafeApp = () =>
-  typeof window !== "undefined" && window.parent !== window;
-
-const to0xData = (data?: string | Hex): `0x${string}` => {
-  if (!data) return "0x";
-  const s = String(data);
-  return (s.startsWith("0x") ? s : "0x") as `0x${string}`;
-};
-
-const toStringWei = (v?: string | bigint | number): string => {
-  if (v === undefined || v === null) return "0";
-  if (typeof v === "string") return v;
-  if (typeof v === "number") return BigInt(v).toString();
-  return v.toString();
-};
-
-/**
- * Propose a transaction from within a Safe App.
- * If not running inside a Safe, it throws an explanatory error.
- */
 export function useSafeProposal() {
-  const sdkRef = useRef<SafeAppsSDK | null>(null);
-  const [safeInfo, setSafeInfo] = useState<SafeInfo | null>(null);
+  const [isSafe, setIsSafe] = useState(false);
+  const [safeAddress, setSafeAddress] = useState<`0x${string}` | undefined>();
+  const [chainId, setChainId] = useState<number | undefined>();
   const [isProposing, setIsProposing] = useState(false);
 
-  // Initialize SDK & fetch safe info only when inside a Safe iframe
+  const sdkRef = useRef<SafeAppsSDK | null>(null);
+  if (!sdkRef.current) {
+    try {
+      sdkRef.current = new SafeAppsSDK();
+    } catch {
+      // outside Safe -> keep null
+    }
+  }
+
   useEffect(() => {
-    if (!inSafeApp()) return;
+    const inIframe =
+      typeof window !== 'undefined' &&
+      window.parent &&
+      window.parent !== window;
 
-    const sdk = new SafeAppsSDK();
-    sdkRef.current = sdk;
+    setIsSafe(Boolean(inIframe));
 
-    let mounted = true;
-    sdk.safe
-      .getInfo()
-      .then((info) => {
-        if (mounted) setSafeInfo(info);
-      })
-      .catch(() => {
-        // Ignore; will just behave as not-in-safe
-      });
+    if (!inIframe || !sdkRef.current) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const safeInfo = await sdkRef.current!.safe.getInfo();
+        if (cancelled) return;
+
+        setSafeAddress(safeInfo.safeAddress as `0x${string}`);
+
+        // Some SDK versions include chainId on the Safe info
+        const cid =
+          // number
+          (safeInfo as any)?.chainId ??
+          // sometimes string
+          (typeof (safeInfo as any)?.chainId === 'string'
+            ? Number((safeInfo as any).chainId)
+            : undefined);
+
+        if (typeof cid === 'number' && Number.isFinite(cid)) {
+          setChainId(cid);
+        } else {
+          setChainId(undefined);
+        }
+      } catch {
+        // leave undefined; UI guards on isSafe/safeAddress
+      }
+    })();
 
     return () => {
-      mounted = false;
+      cancelled = true;
     };
   }, []);
 
-  const isSafe = useMemo(() => !!safeInfo, [safeInfo]);
+  const proposeTransaction = useCallback(
+    async ({ to, data, value = '0' }: ProposeArgs) => {
+      if (!isSafe || !sdkRef.current) {
+        throw new Error(
+          'Open this page inside your Safe to propose the transaction.'
+        );
+      }
 
-  const proposeTransaction = async ({ to, data, value }: ProposeArgs) => {
-    if (!inSafeApp() || !sdkRef.current) {
-      throw new Error(
-        "Open this page inside your Safe to propose the transaction."
-      );
-    }
+      setIsProposing(true);
+      try {
+        const tx: BaseTransaction = {
+          to,
+          value,
+          data: (data ?? '0x') as string, // SDK expects plain string
+        };
 
-    setIsProposing(true);
-    try {
-      const payload = {
-        txs: [
-          {
-            to,
-            data: to0xData(data), // <- always a string '0x...'
-            value: toStringWei(value), // <- Safe expects a string
-          },
-        ],
-      };
+        // Returns { safeTxHash }
+        return await sdkRef.current.txs.send({ txs: [tx] });
+      } finally {
+        setIsProposing(false);
+      }
+    },
+    [isSafe]
+  );
 
-      // Returns { safeTxHash: string }
-      const res = await sdkRef.current.txs.send(payload);
-      return res;
-    } finally {
-      setIsProposing(false);
-    }
-  };
-
-  return {
-    // actions
-    proposeTransaction,
-
-    // state
-    isProposing,
-
-    // context
-    isSafe,
-    safe: safeInfo,
-    safeAddress: safeInfo?.safeAddress,
-  };
+  return useMemo(
+    () => ({
+      isSafe,
+      safeAddress,
+      chainId,
+      isProposing,
+      proposeTransaction,
+    }),
+    [isSafe, safeAddress, chainId, isProposing, proposeTransaction]
+  );
 }
 
 export default useSafeProposal;
