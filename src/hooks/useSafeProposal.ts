@@ -1,66 +1,72 @@
 // src/hooks/useSafeProposal.ts
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Address, Hex } from "viem";
-import SafeAppsSDK from "@safe-global/safe-apps-sdk";
-import toast from "react-hot-toast";
-
-// Detect Safe iframe
-const inSafeApp = () =>
-  typeof window !== "undefined" && window.parent !== window;
+import SafeAppsSDK, { type SafeInfo } from "@safe-global/safe-apps-sdk";
 
 type ProposeArgs = {
   to: Address;
-  data: Hex;          // encoded calldata to your vesting contract
-  value?: string;     // wei as string (default "0")
+  /** Calldata for the target contract. If you don't need calldata, omit it. */
+  data?: Hex;
+  /** String in wei. Defaults to "0". */
+  value?: string;
 };
 
 export function useSafeProposal() {
+  const [sdk, setSdk] = useState<SafeAppsSDK | undefined>();
+  const [safeInfo, setSafeInfo] = useState<SafeInfo | undefined>();
+  const [isSafe, setIsSafe] = useState(false);
   const [isProposing, setIsProposing] = useState(false);
 
-  const proposeTransaction = async ({ to, data, value = "0" }: ProposeArgs) => {
-    const toastId = toast.loading("Preparing Safe transaction…");
-    setIsProposing(true);
+  // Robust Safe detection via official SDK
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      if (!inSafeApp()) {
-        toast.error(
-          "Please open this app from Safe → Apps (it runs as a Safe App).",
-          { id: toastId }
-        );
-        return;
+    (async () => {
+      try {
+        const instance = new SafeAppsSDK();
+        const info = await instance.safe.getInfo(); // throws if not in Safe
+        if (cancelled) return;
+        setSdk(instance);
+        setSafeInfo(info);
+        setIsSafe(true);
+      } catch {
+        // Not in a Safe iframe
+        setSdk(undefined);
+        setSafeInfo(undefined);
+        setIsSafe(false);
       }
+    })();
 
-      const appsSdk = new SafeAppsSDK();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-      // NB: do NOT pass `origin` here — your SDK type doesn't allow it
-      const { safeTxHash } = await appsSdk.txs.send({
-        txs: [
-          {
-            to,
-            value: value.toString(),
-            data,
-          },
-        ],
-      });
+  const safeAddress = safeInfo?.safeAddress;
 
-      toast.success(
-        "Transaction proposed in Safe. Ask other owners to approve in the Queue.",
-        { id: toastId, duration: 6000 }
-      );
+  const proposeTransaction = useMemo(
+    () =>
+      async ({ to, data, value }: ProposeArgs) => {
+        if (!sdk || !isSafe) {
+          // This message is caught by the caller and shown in the UI when needed
+          throw new Error("NOT_IN_SAFE");
+        }
+        setIsProposing(true);
+        try {
+          // Safe SDK requires strings for both data and value.
+          const txs = [{ to, data: (data ?? "0x") as Hex, value: value ?? "0" }];
+          // returns { safeTxHash }
+          return await sdk.txs.send({ txs });
+        } finally {
+          setIsProposing(false);
+        }
+      },
+    [sdk, isSafe]
+  );
 
-      return { safeTxHash };
-    } catch (err: any) {
-      console.error(err);
-      toast.error(
-        `Proposal failed: ${err?.shortMessage ?? err?.message ?? "Unknown error"}`,
-        { id: toastId }
-      );
-    } finally {
-      setIsProposing(false);
-    }
-  };
-
-  return { proposeTransaction, isProposing };
+  return { proposeTransaction, isProposing, isSafe, safeAddress };
 }
+
+export default useSafeProposal;

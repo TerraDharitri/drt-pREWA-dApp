@@ -2,58 +2,56 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount } from "wagmi";
 import type { Address, Hex } from "viem";
-import { encodeFunctionData, erc20Abi, isAddress, parseUnits } from "viem";
+import { encodeFunctionData, parseUnits } from "viem";
 import toast from "react-hot-toast";
 
 import { useIsSafeOwner } from "@/hooks/useIsSafeOwner";
 import { useSafeProposal } from "@/hooks/useSafeProposal";
-import { useSafe } from "@/providers/SafeProvider";               // ✅ get Safe address here
-import { pREWAAddresses, pREWAAbis } from "@/constants";
+import { pREWAAddresses } from "@/constants";
 
-const inSafeApp = () =>
-  typeof window !== "undefined" && window.parent !== window;
-
-// yyyy-mm-dd -> unix seconds at 00:00 local
-function dateInputToUnix(d: string): number {
-  if (!d) return 0;
-  const t = new Date(`${d}T00:00:00`);
-  if (Number.isNaN(t.getTime())) return 0;
-  return Math.floor(t.getTime() / 1000);
-}
+// Your VestingFactory proxy takes createVesting(...) in seconds
+const vestingFactoryAbi = [
+  {
+    type: "function",
+    name: "createVesting",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "beneficiary", type: "address" },
+      { name: "startTime", type: "uint256" },
+      { name: "cliffDuration", type: "uint256" },
+      { name: "duration", type: "uint256" },
+      { name: "revocable", type: "bool" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "vestingAddress", type: "address" }],
+  },
+] as const;
 
 export default function CreateVestingSchedule() {
   const { chainId } = useAccount();
-  const publicClient = usePublicClient();
-  const safeMode = inSafeApp();
-
   const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
-  const { proposeTransaction, isProposing } = useSafeProposal();
-  const { safe, isSafe } = useSafe();                           // ✅ use SafeProvider
-  const safeAddress = safe?.safeAddress as Address | undefined; // ✅ Safe address (if in Safe)
+  const { proposeTransaction, isProposing, isSafe } = useSafeProposal();
 
-  // Form state
+  // --- form state ---
   const [beneficiary, setBeneficiary] = useState("");
-  const [amount, setAmount] = useState("");
-  const [startDate, setStartDate] = useState("");     // yyyy-mm-dd (native date picker)
+  const [amount, setAmount] = useState(""); // human amount, e.g. "100"
+  const [startDate, setStartDate] = useState(""); // <input type="date"> -> "YYYY-MM-DD"
   const [durationDays, setDurationDays] = useState("");
   const [cliffDays, setCliffDays] = useState("");
   const [revocable, setRevocable] = useState(true);
 
-  // Contracts for current chain
-  const addrs = useMemo(() => {
+  const vestingFactoryAddress = useMemo(() => {
     if (!chainId) return undefined;
-    return pREWAAddresses[chainId as keyof typeof pREWAAddresses];
+    return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
+      ?.VestingFactory as Address | undefined; // **proxy** address
   }, [chainId]);
-
-  const vestingFactory = addrs?.VestingFactory as Address | undefined;
-  const pREWA = addrs?.pREWAToken as Address | undefined;
 
   const disabled =
     isProposing ||
     isOwnerLoading ||
-    !vestingFactory ||
+    !vestingFactoryAddress ||
     !beneficiary ||
     !amount ||
     !durationDays ||
@@ -62,113 +60,96 @@ export default function CreateVestingSchedule() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      if (!vestingFactory || !pREWA) {
-        toast.error("Unsupported network (pREWA / VestingFactory not configured).");
+    // Basic validations
+    if (!vestingFactoryAddress) {
+      toast.error("Unsupported network: VestingFactory not configured.");
+      return;
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(beneficiary)) {
+      toast.error("Enter a valid beneficiary address.");
+      return;
+    }
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error("Enter a positive amount.");
+      return;
+    }
+
+    // Convert date -> unix (seconds). If empty, 0 means "start now"
+    let startUnix = 0;
+    if (startDate) {
+      // startDate is "YYYY-MM-DD"; interpret as local midnight
+      const dt = new Date(`${startDate}T00:00:00`);
+      if (Number.isNaN(dt.getTime())) {
+        toast.error("Invalid start date.");
         return;
       }
-      if (!isAddress(beneficiary)) {
-        toast.error("Enter a valid beneficiary address.");
-        return;
-      }
-      if (!amount || Number(amount) <= 0) {
-        toast.error("Enter a positive amount.");
-        return;
-      }
+      startUnix = Math.floor(dt.getTime() / 1000);
+    }
 
-      // Read decimals and convert amount to wei
-      const decimals = await publicClient.readContract({
-        address: pREWA,
-        abi: erc20Abi,
-        functionName: "decimals",
-      });
-      const amountWei = parseUnits(amount, Number(decimals));
+    const duration = parseInt(durationDays, 10);
+    const cliff = parseInt(cliffDays, 10);
+    if (!Number.isFinite(duration) || duration <= 0) {
+      toast.error("Duration must be at least 1 day.");
+      return;
+    }
+    if (!Number.isFinite(cliff) || cliff < 0) {
+      toast.error("Cliff must be a non-negative number of days.");
+      return;
+    }
+    if (cliff > duration) {
+      toast.error("Cliff cannot be longer than duration.");
+      return;
+    }
 
-      // Convert inputs to seconds
-      const startUnix = startDate ? dateInputToUnix(startDate) : 0;
-      const duration = parseInt(durationDays || "0", 10);
-      const cliff = parseInt(cliffDays || "0", 10);
-      if (!Number.isFinite(duration) || duration <= 0) {
-        toast.error("Duration must be a positive number of days.");
-        return;
-      }
-      if (!Number.isFinite(cliff) || cliff < 0) {
-        toast.error("Cliff must be a non-negative number of days.");
-        return;
-      }
+    // Your pREWA token uses 18 decimals (adjust if different)
+    const amountWei = parseUnits(amount, 18);
 
-      // We only support proposing from inside a Safe here (so allowance owner is the Safe)
-      if (!isSafe || !safeAddress) {
-        toast.error("Open this page inside your Safe to propose the transaction.");
-        return;
-      }
+    // Build calldata for the **proxy** factory
+    const data = encodeFunctionData({
+      abi: vestingFactoryAbi as any,
+      functionName: "createVesting",
+      args: [
+        beneficiary as Address,
+        BigInt(startUnix),
+        BigInt(cliff * 86400), // days -> seconds
+        BigInt(duration * 86400), // days -> seconds
+        revocable,
+        amountWei,
+      ],
+    }) as Hex;
 
-      // Check allowance: allowance(SAFE, factory)
-      const allowance = (await publicClient.readContract({
-        address: pREWA,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [safeAddress, vestingFactory],
-      })) as bigint;
+    if (!isSafe) {
+      toast.error("Open this page inside your Safe to propose the transaction.");
+      return;
+    }
 
-      if (allowance < amountWei) {
-        // 1) Propose approval first
-        const approveData = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [vestingFactory, amountWei],
-        }) as Hex;
+    const res = await proposeTransaction({
+      to: vestingFactoryAddress as Address, // **proxy**
+      data,
+      value: "0",
+    });
 
-        await proposeTransaction({
-          to: pREWA,
-          data: approveData,
-          value: "0",
-        });
-
-        toast.success(
-          "Approval proposed to Safe. Execute/confirm it, then come back to propose the vesting creation."
-        );
-        return;
-      }
-
-      // 2) Propose createVesting
-      // createVesting(address beneficiary, uint256 startTime, uint256 cliffDuration, uint256 duration, bool revocable, uint256 amount)
-      const data = encodeFunctionData({
-        abi: pREWAAbis.VestingFactory as any,
-        functionName: "createVesting",
-        args: [
-          beneficiary as Address,
-          BigInt(startUnix),
-          BigInt(cliff * 86400),
-          BigInt(duration * 86400),
-          revocable,
-          amountWei,
-        ],
-      }) as Hex;
-
-      await proposeTransaction({
-        to: vestingFactory,
-        data,
-        value: "0",
-      });
-
-      toast.success("Vesting creation proposed to Safe.");
-      // Optionally reset the form here
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.shortMessage ?? err?.message ?? "Failed to propose");
+    if (res?.safeTxHash) {
+      toast.success("Transaction proposed to your Safe.");
+      // Optionally reset the form:
+      // setBeneficiary(""); setAmount(""); setStartDate(""); setDurationDays(""); setCliffDays(""); setRevocable(true);
+    } else {
+      toast.error("Failed to propose transaction. Please try again.");
     }
   };
 
-  // Outside Safe, only owners can see the form — same gating as before
-  if (!safeMode && isOwnerLoading) {
+  // Outside Safe, only owners (signers) should see the form; inside Safe we
+  // always allow proposing (it will be confirmed by the Safe policies).
+  if (!isSafe && isOwnerLoading) {
     return (
       <div className="rounded-md border p-6 text-center text-sm opacity-70">
         Checking admin permissions…
       </div>
     );
   }
-  if (!safeMode && !isOwner) {
+  if (!isSafe && !isOwner) {
+    // Not in Safe and not an admin/signer: don’t show form.
     return null;
   }
 
@@ -197,9 +178,10 @@ export default function CreateVestingSchedule() {
 
       <div>
         <label className="block text-sm mb-1">Start Date (Optional)</label>
+        {/* native date picker */}
         <input
-          type="date"                                   // ✅ native date picker back
           className="w-full rounded-md border px-3 py-2"
+          type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
