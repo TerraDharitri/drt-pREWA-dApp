@@ -2,10 +2,14 @@
 
 "use client";
 import React from "react";
+import { useAccount } from "wagmi";
 import { useReadVestingSchedules } from "@/hooks/useReadVestingSchedules";
 import { VestingScheduleRow } from "./VestingScheduleRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
+import { useProtocolStats } from "@/hooks/useProtocolStats";
+import { TOKEN_LISTS } from "@/constants/tokens";
+import { formatUnits } from "viem";
 
 interface UserVestingSummaryProps {
   isAdmin: boolean;
@@ -13,6 +17,25 @@ interface UserVestingSummaryProps {
 
 export function UserVestingSummary({ isAdmin = false }: UserVestingSummaryProps) {
   const { schedules, isLoading, isError } = useReadVestingSchedules(isAdmin);
+  const { prewaPriceRaw, isLoading: isLoadingPrice } = useProtocolStats();
+  const { chainId } = useAccount();
+
+  const totalValueUsd = React.useMemo(() => {
+    if (isAdmin || schedules.length === 0 || isLoadingPrice || prewaPriceRaw === 0) {
+      return null;
+    }
+    const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
+    const pREWA = tokens.find(t => t.symbol === 'pREWA');
+    if (!pREWA) return null;
+
+    const totalUnreleasedWei = schedules.reduce((sum, s) => sum + (s.totalAmount - s.releasedAmount), 0n);
+    const totalUnreleased = parseFloat(formatUnits(totalUnreleasedWei, pREWA.decimals));
+    
+    return (totalUnreleased * prewaPriceRaw).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+  }, [isAdmin, schedules, prewaPriceRaw, isLoadingPrice, chainId]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -58,15 +81,27 @@ export function UserVestingSummary({ isAdmin = false }: UserVestingSummaryProps)
     );
   };
   
-  // FIX: Make the title dynamic based on the context.
   const title = isAdmin 
     ? `All Protocol Vesting Schedules (${isLoading ? '...' : schedules.length})` 
     : `Your Vesting Schedules (${isLoading ? '...' : schedules.length})`;
+  
+  const userTitle = (
+    <div className="flex items-center justify-between">
+      <span>{title}</span>
+      {(isLoading || isLoadingPrice) ? (
+        <Spinner className="w-4 h-4" />
+      ) : totalValueUsd && (
+        <span className="text-base font-normal text-gray-500 dark:text-gray-400">
+            ~${totalValueUsd} USD
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{isAdmin ? title : userTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         {renderContent()}
