@@ -6,18 +6,20 @@ import { useAccount } from "wagmi";
 import { TOKEN_LISTS, Token } from "@/constants/tokens";
 
 export const useSwapState = () => {
-  const { chainId, isConnected } = useAccount();
+  const { chainId } = useAccount();
 
   const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
 
-  const [fromToken, setFromToken] = useState<Token>(() => TOKENS.find(t => t.symbol === 'BNB') || TOKENS[0]);
+  // FIX: Default to USDT and pREWA
+  const [fromToken, setFromToken] = useState<Token>(() => TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
   const [toToken, setToToken] = useState<Token>(() => TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
   const [fromAmount, setFromAmount] = useState("");
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'from' | 'to' | null>(null);
 
   useEffect(() => {
-      setFromToken(TOKENS.find(t => t.symbol === 'BNB') || TOKENS[0]);
+      // FIX: Ensure defaults reset correctly on network change
+      setFromToken(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
       setToToken(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
       setFromAmount("");
   }, [chainId, TOKENS]);

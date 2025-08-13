@@ -1,3 +1,4 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
@@ -7,36 +8,19 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: ["class", "class"],
+  darkMode: "class",
   theme: {
+    // FIX: Update the lg breakpoint to 1180px to give tablets more space
   	screens: {
-  		'5xl': {
-  			max: '2299px'
-  		},
-  		'4xl': {
-  			max: '1899px'
-  		},
-  		'3xl': {
-  			max: '1719px'
-  		},
-  		'2xl': {
-  			max: '1419px'
-  		},
-  		lxl: {
-  			max: '1259px'
-  		},
-  		xl: {
-  			max: '1179px'
-  		},
-  		lg: {
-  			max: '1023px'
-  		},
-  		md: {
-  			max: '767px'
-  		},
-  		sm: {
-  			max: '480px'
-  		}
+      sm: '481px',
+      md: '768px',
+      lg: '1180px', // Was 1024px, now matches xl
+      xl: '1180px',
+      lxl: '1260px',
+      '2xl': '1420px',
+      '3xl': '1720px',
+      '4xl': '1900px',
+      '5xl': '2300px',
   	},
   	extend: {
   		colors: {
@@ -114,8 +98,8 @@ const config: Config = {
   				border: '#404040',
   				text: {
   					primary: '#FFFFFF',
-  					secondary: '#A3A3A3',
-  					muted: '#737373'
+  					secondary: '#E5E5E5',
+  					muted: '#A3A3A3',
   				}
   			},
   			background: 'hsl(var(--background))',
@@ -159,13 +143,13 @@ const config: Config = {
   			'5': '5'
   		},
   		spacing: {
+            '18': '4.5rem',
+            '22': '5.5rem',
   			'13': '3.25rem',
   			'15': '3.75rem',
   			'17': '4.25rem',
-  			'18': '4.5rem',
   			'19': '4.75rem',
   			'21': '5.25rem',
-  			'22': '5.5rem',
   			'23': '5.75rem',
   			'25': '6.25rem',
   			'26': '6.5rem',
@@ -293,23 +277,15 @@ const config: Config = {
     plugin(function ({ addBase, addComponents, addUtilities }) {
       addBase({
         html: {
-          "@apply text-[calc(1rem+.2vw)] 5xl:text-[calc(1rem+.15vw)] 4xl:text-[calc(1rem+.1vw)] 3xl:text-[1rem]":
-            {},
+            "@apply text-[calc(1rem+.2vw)] lg:text-[1rem]": {},
         },
       });
       addComponents({
         ".section": {
-          "@apply py-30 xl:py-24 md:py-12": {},
-        },
-        ".section-md": {
-          "@apply py-24 md:py-12": {},
+            "@apply py-12 md:py-24 lg:py-30": {},
         },
         ".container": {
-          "@apply max-w-[82.5rem] mx-auto px-8 3xl:max-w-[76.5rem] lg:px-12 md:px-6":
-            {},
-        },
-        ".container-md": {
-          "@apply container max-w-[90rem] 3xl:max-w-[84rem]": {},
+            "@apply max-w-[82.5rem] mx-auto px-4 md:px-6 lg:px-8": {},
         },
         ".btn": {
           "@apply inline-flex items-center justify-center h-13 px-7 space-x-2 border border-transparent font-sans text-lg font-semibold rounded-full transition-colors":
@@ -330,14 +306,13 @@ const config: Config = {
           "@apply h-10 px-4 text-base": {},
         },
         ".label": {
-          "@apply inline-flex items-center h-8 px-4 bg-primary-25 rounded-full text-base font-medium text-secondary-300":
-            {},
+          "@apply inline-flex items-center h-8 px-4 bg-primary-25 rounded-full text-base font-medium text-secondary-300": {},
         },
         ".label-sm": {
           "@apply h-[1.625rem] px-2.5 text-sm": {},
         },
         ".stage": {
-          "@apply mb-4 text-xl font-medium text-greyscale-400 dark:text-dark-text-secondary md:text-lg":
+          "@apply mb-4 text-lg md:text-xl font-medium text-greyscale-400 dark:text-dark-text-secondary":
             {},
         },
       });

@@ -4,14 +4,13 @@
 
 import React from 'react';
 import { useProtocolStats } from '@/hooks/useProtocolStats';
+// The Spinner is no longer used here, but we can leave the import.
 import { Spinner } from '@/components/ui/Spinner';
 
 export function ProtocolStats() {
-    const { isLoading, prewaPrice, poolSizeUsd } = useProtocolStats();
-
-    if (isLoading) {
-        return <div className="flex items-center text-sm"><Spinner className="w-4 h-4 mr-2" /> Loading Stats...</div>;
-    }
+    // The hook provides the last successful data while `isLoading` is true.
+    // We can simply ignore `isLoading` here to achieve a silent refresh.
+    const { prewaPrice, poolSizeUsd } = useProtocolStats();
 
     return (
         <div className="flex items-center space-x-4 text-sm font-medium text-greyscale-700 dark:text-dark-text-secondary lg:flex-col lg:items-start lg:space-x-0 lg:space-y-2">

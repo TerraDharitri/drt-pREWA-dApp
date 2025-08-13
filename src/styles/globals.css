@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark mode transitions */
-* {
+/* Dark mode transitions - REMOVED for better performance and control */
+/* * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
-}
+} */
 
 @layer components {
+  /* ... (keep the rest of your .content styles as they are) ... */
   .content h5 {
     @apply text-h5;
   }

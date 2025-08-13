@@ -12,7 +12,8 @@ export const useLiquidityState = () => {
 
   const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
   
-  const [tokenA, setTokenA] = useState<Token>(() => TOKENS.find(t => t.symbol === 'BNB') || TOKENS[0]);
+  // FIX: Default to USDT and pREWA
+  const [tokenA, setTokenA] = useState<Token>(() => TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
   const [tokenB, setTokenB] = useState<Token>(() => TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
   const [amountA, setAmountA] = useState("");
   const [amountB, setAmountB] = useState("");
@@ -21,7 +22,8 @@ export const useLiquidityState = () => {
   const [modalType, setModalType] = useState<'A' | 'B' | null>(null);
 
   useEffect(() => {
-    setTokenA(TOKENS.find(t => t.symbol === 'BNB') || TOKENS[0]);
+    // FIX: Ensure defaults reset correctly on network change
+    setTokenA(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
     setTokenB(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
     setAmountA("");
     setAmountB("");

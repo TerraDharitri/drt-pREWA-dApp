@@ -7,6 +7,7 @@ import "@/styles/globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ClientSideWeb3Provider } from "@/providers/client-side-web3-provider";
 import Navbar from "@/components/layout/Navbar";
+import { BottomNavbar } from "@/components/layout/BottomNavbar"; // Import the new component
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "react-hot-toast";
 
@@ -40,11 +41,12 @@ export default function RootLayout({
           <ClientSideWeb3Provider>
             <div className="flex min-h-screen flex-col">
               <Navbar />
-              {/* Keep your original spacing + add a site-wide container */}
-              <main className="flex-grow pt-20">
+              {/* Add bottom padding to account for the new BottomNavbar on mobile */}
+              <main className="flex-grow pt-22 pb-24 md:pt-18 lg:pb-0">
                 <div className="mx-auto w-full max-w-7xl px-4">{children}</div>
               </main>
               <Footer />
+              <BottomNavbar /> {/* Render the new component here */}
             </div>
             <Toaster position="bottom-right" containerClassName="toast-container" />
           </ClientSideWeb3Provider>
