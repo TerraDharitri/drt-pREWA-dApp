@@ -21,9 +21,10 @@ import { isValidNumberInput } from "@/lib/utils";
 
 interface StakingDashboardProps {
   totalPositionCount: number | null;
+  selectedTierId: number;
 }
 
-export function StakingDashboard({ totalPositionCount }: StakingDashboardProps) {
+export function StakingDashboard({ totalPositionCount, selectedTierId }: StakingDashboardProps) {
   const { address, chainId } = useAccount();
 
   const contractAddress = chainId
@@ -35,24 +36,20 @@ export function StakingDashboard({ totalPositionCount }: StakingDashboardProps) 
     : undefined;
 
   const [stakeAmount, setStakeAmount] = React.useState("");
-  const [selectedTier, setSelectedTier] = React.useState(0);
 
   const isAmountValid = useMemo(
     () => isValidNumberInput(stakeAmount),
     [stakeAmount]
   );
 
-  // pREWA ERC-20 balance (wagmi narrows chain automatically via token address)
   const { data: pREWABalance } = useBalance({
     address,
     token: tokenAddress,
     query: { enabled: !!address && !!tokenAddress, refetchInterval: 5000 },
   });
 
-  // ✅ Narrow chainId to the union wagmi expects (56 | 97 | undefined)
   const typedChainId = chainId === 56 ? 56 : chainId === 97 ? 97 : undefined;
 
-  // Native balance (BNB)
   const { data: nativeBalance } = useBalance({
     address,
     chainId: typedChainId,
@@ -82,14 +79,17 @@ export function StakingDashboard({ totalPositionCount }: StakingDashboardProps) 
 
   const needsApproval =
     isAmountValid &&
-    (!allowance || allowance < parseUnits(stakeAmount || "0", 18));
+    pREWABalance &&
+    (!allowance || allowance < parseUnits(stakeAmount || "0", pREWABalance.decimals));
 
   const handleStake = () => {
     if (!isAmountValid) return toast.error("Please enter a valid amount to stake.");
+    const stakeAction = () => stake(stakeAmount, selectedTierId);
+    
     if (needsApproval) {
-      approve({ onSuccess: () => stake(stakeAmount, selectedTier) });
+      approve({ onSuccess: stakeAction });
     } else {
-      stake(stakeAmount, selectedTier);
+      stakeAction();
     }
   };
 
@@ -107,23 +107,9 @@ export function StakingDashboard({ totalPositionCount }: StakingDashboardProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label htmlFor="tier" className="mb-1 block text-sm font-medium">
-            Staking Tier
-          </label>
-          <Input
-            id="tier"
-            type="number"
-            value={selectedTier}
-            onChange={(e) => setSelectedTier(parseInt(e.target.value))}
-            placeholder="Enter Tier ID (e.g., 0)"
-            disabled={isAtPositionLimit || isLoading}
-          />
-        </div>
-
-        <div>
           <div className="flex justify-between items-baseline mb-1">
             <label htmlFor="amount" className="text-sm font-medium">
-              Amount to Stake
+              Amount to Stake (Tier {selectedTierId})
             </label>
             {pREWABalance && (
               <span className="text-xs text-gray-500">
@@ -153,8 +139,7 @@ export function StakingDashboard({ totalPositionCount }: StakingDashboardProps) 
 
           {hasLowNativeBalance && needsApproval && !isLoading && (
             <p className="text-center text-xs text-warning-200 dark:text-warning-100 p-2 rounded-md bg-warning-0 dark:bg-warning-300/20">
-              Your BNB balance is low. You may need to confirm the transaction
-              despite a potential gas warning from your wallet.
+              Your BNB balance is low. You may need more for transaction fees.
             </p>
           )}
         </div>

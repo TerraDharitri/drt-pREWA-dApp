@@ -1,4 +1,4 @@
-# drt-pREWA dApp
+# drt-pREWA-dApp
 
 This is the official frontend and monitoring service for the drt-pREWA Protocol.
 

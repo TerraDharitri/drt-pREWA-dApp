@@ -1,35 +1,27 @@
 // src/app/(main)/page.tsx
-
 "use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/layout/SectionHeader";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <h1 className="text-greyscale-900 dark:text-dark-text-primary mb-4 text-4xl font-extrabold md:text-5xl">
-        Welcome to the Dharitri Protocol
-      </h1>
-      <p className="text-greyscale-400 dark:text-dark-text-secondary mx-auto mb-8 max-w-2xl text-lg">
-        Your gateway to staking, swapping, and managing your pREWA
-        assets securely on the BNB Smart Chain.
-      </p>
-      <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <Link href="/stake">
-          <Button variant="default" size="lg">
-            Stake pREWA
-          </Button>
-        </Link>
-        <Link href="/liquidity">
-          <Button variant="secondary" size="lg">
-            Provide Liquidity
-          </Button>
-        </Link>
-        <Link href="/dashboard">
-          <Button variant="outline" size="lg">
-            View Dashboard
-          </Button>
-        </Link>
+    <div className="flex flex-col items-center justify-center text-center py-12 md:py-24">
+       <SectionHeader 
+          title="Finance for a Greener Future."
+          subtitle="Stake, swap, and manage pREWA — every action supports farmers with digital IDs, knowledge access, and rewards for sustainable practices."
+       />
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <Button asChild size="lg">
+          <Link href="/stake">Start Earning</Link>
+        </Button>
+        <Button asChild size="lg" variant="secondary">
+          <Link href="/liquidity">Fund a Green Pool</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/dashboard">Track Your Impact</Link>
+        </Button>
       </div>
     </div>
   );

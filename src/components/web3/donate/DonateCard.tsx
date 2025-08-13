@@ -1,3 +1,4 @@
+// src/components/web3/donate/DonateCard.tsx
 "use client";
 import React, { useState, useMemo } from "react";
 import { useReadContract, useAccount, useBalance } from "wagmi";
@@ -38,8 +39,6 @@ export function DonateCard() {
   });
 
   const donationAddress = donationAddressResult as Address | undefined;
-
-  // ✅ Narrow chainId to the union wagmi expects (56 | 97 | undefined)
   const typedChainId = chainId === 56 ? 56 : chainId === 97 ? 97 : undefined;
 
   const { data: balance } = useBalance({
@@ -59,11 +58,9 @@ export function DonateCard() {
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Support the Protocol</CardTitle>
+        <CardTitle>Directly Fund a Greener Planet</CardTitle>
         <CardDescription>
-          Your donations help fund development and secure the future of the
-          Dharitri Protocol. All donations are sent in the native network
-          currency (BNB).
+          100% of donations are allocated by the Dharitri Foundation to farmer services, on-chain carbon credit projects, and community grants — ensuring long-term protocol sustainability.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
