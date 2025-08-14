@@ -9,9 +9,8 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  // FIX: The entire 'experimental' block has been safely removed.
+  // The 'headers' function below remains completely unchanged.
   async headers() {
     return [
       {
