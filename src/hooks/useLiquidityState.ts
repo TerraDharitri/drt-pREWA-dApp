@@ -1,5 +1,4 @@
 // src/hooks/useLiquidityState.ts
-
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { useAccount, useBalance, useReadContract } from "wagmi";
@@ -12,9 +11,8 @@ export const useLiquidityState = () => {
 
   const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
   
-  // FIX: Default to USDT and pREWA
-  const [tokenA, setTokenA] = useState<Token>(() => TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
-  const [tokenB, setTokenB] = useState<Token>(() => TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
+  const [tokenA, setTokenA] = useState<Token | undefined>(undefined);
+  const [tokenB, setTokenB] = useState<Token | undefined>(undefined);
   const [amountA, setAmountA] = useState("");
   const [amountB, setAmountB] = useState("");
 
@@ -22,24 +20,25 @@ export const useLiquidityState = () => {
   const [modalType, setModalType] = useState<'A' | 'B' | null>(null);
 
   useEffect(() => {
-    // FIX: Ensure defaults reset correctly on network change
-    setTokenA(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
-    setTokenB(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
-    setAmountA("");
-    setAmountB("");
-  }, [chainId, TOKENS]);
+    if (TOKENS.length > 0 && (!tokenA || !tokenB)) {
+      setTokenA(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
+      setTokenB(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
+      setAmountA("");
+      setAmountB("");
+    }
+  }, [chainId, TOKENS, tokenA, tokenB]);
 
   const liquidityManagerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager : undefined;
   const pREWAAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken : undefined;
 
   const { data: balanceA } = useBalance({ 
     address: accountAddress, 
-    token: tokenA?.symbol !== 'BNB' ? tokenA.address : undefined,
+    token: (tokenA && tokenA.symbol !== 'BNB') ? tokenA.address : undefined,
     query: { enabled: isConnected && !!tokenA }
   });
   const { data: balanceB } = useBalance({ 
     address: accountAddress, 
-    token: tokenB?.symbol !== 'BNB' ? tokenB.address : undefined,
+    token: (tokenB && tokenB.symbol !== 'BNB') ? tokenB.address : undefined,
     query: { enabled: isConnected && !!tokenB }
   });
   
@@ -62,29 +61,29 @@ export const useLiquidityState = () => {
   });
 
   const reserves = useMemo(() => {
-    if (!pairInfo || !Array.isArray(pairInfo) || (pairInfo[0] as Address).toLowerCase() === '0x0000000000000000000000000000000000000000') {
+    if (!pairInfo || !Array.isArray(pairInfo) || (pairInfo[0] as Address).toLowerCase() === '0x0000000000000000000000000000000000000000' || !tokenA) {
       return { reserveA: 0n, reserveB: 0n };
     }
     
     const [, , , reserve0, reserve1, pREWAIsToken0, ] = pairInfo as [Address, Address, boolean, bigint, bigint, boolean, number];
     
-    const isTokenAPREWA = tokenA?.address.toLowerCase() === pREWAAddress?.toLowerCase();
+    const isTokenAPREWA = tokenA.address.toLowerCase() === pREWAAddress?.toLowerCase();
     
     if (isTokenAPREWA) {
         return pREWAIsToken0 ? { reserveA: reserve0, reserveB: reserve1 } : { reserveA: reserve1, reserveB: reserve0 };
     } else { 
         return pREWAIsToken0 ? { reserveA: reserve1, reserveB: reserve0 } : { reserveA: reserve0, reserveB: reserve1 };
     }
-  }, [pairInfo, tokenA?.address, pREWAAddress]);
+  }, [pairInfo, tokenA, pREWAAddress]);
 
   const handleSelectToken = (selectedToken: Token) => {
     if (modalType === 'A') {
-      if (selectedToken.address === tokenB.address) {
+      if (tokenB && selectedToken.address === tokenB.address) {
         setTokenB(tokenA); // Flip
       }
       setTokenA(selectedToken);
     } else if (modalType === 'B') {
-      if (selectedToken.address === tokenA.address) {
+      if (tokenA && selectedToken.address === tokenA.address) {
         setTokenA(tokenB); // Flip
       }
       setTokenB(selectedToken);
@@ -94,28 +93,22 @@ export const useLiquidityState = () => {
   
   const handleAmountAChange = (value: string) => {
     setAmountA(value);
-    if (reserves && reserves.reserveA > 0n && reserves.reserveB > 0n && value && !isNaN(Number(value)) && Number(value) > 0) {
+    if (tokenA && tokenB && reserves.reserveA > 0n && reserves.reserveB > 0n && value && !isNaN(Number(value)) && Number(value) > 0) {
       const amountInWei = parseUnits(value, tokenA.decimals);
       const amountBWei = (amountInWei * reserves.reserveB) / reserves.reserveA;
       setAmountB(formatUnits(amountBWei, tokenB.decimals));
-    } else {
-      if (!reserves || reserves.reserveA === 0n) {
-        return;
-      }
+    } else if (!value) {
       setAmountB('');
     }
   };
 
   const handleAmountBChange = (value: string) => {
     setAmountB(value);
-    if (reserves && reserves.reserveB > 0n && reserves.reserveA > 0n && value && !isNaN(Number(value)) && Number(value) > 0) {
+    if (tokenA && tokenB && reserves.reserveB > 0n && reserves.reserveA > 0n && value && !isNaN(Number(value)) && Number(value) > 0) {
       const amountInWei = parseUnits(value, tokenB.decimals);
       const amountAWei = (amountInWei * reserves.reserveA) / reserves.reserveB;
       setAmountA(formatUnits(amountAWei, tokenA.decimals));
-    } else {
-       if (!reserves || reserves.reserveB === 0n) {
-        return;
-      }
+    } else if (!value) {
       setAmountA('');
     }
   };

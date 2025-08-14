@@ -14,9 +14,9 @@ export type ImpactMetrics = {
 
 export function ImpactCard({
   metrics = {
-    hectaresUnderRegen: "1,500+",
-    farmersWithIDs: "250+",
-    projectedCO2e: "~7,500 tCO₂e",
+    hectaresUnderRegen: "...",
+    farmersWithIDs: "...",
+    projectedCO2e: "... tCO₂e",
     methodologyHref: "https://www.dharitri.org/",
   },
 }: {

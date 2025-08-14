@@ -4,7 +4,6 @@
 import { Card, CardContent } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
-// This is a local interface, specific to this component's props.
 interface StakingTier {
   id: number;
   duration: number;
@@ -14,11 +13,18 @@ interface StakingTier {
 
 interface StakingTierCardProps {
   tier: StakingTier;
+  baseApr?: number;
   isSelected: boolean;
   onClick: () => void;
 }
 
-export function StakingTierCard({ tier, isSelected, onClick }: StakingTierCardProps) {
+export function StakingTierCard({ tier, baseApr, isSelected, onClick }: StakingTierCardProps) {
+  // Calculate the resultant APR if the base APR is provided and greater than zero
+  const resultantApr =
+    baseApr && baseApr > 0
+      ? (baseApr * tier.rewardMultiplier).toFixed(2)
+      : null;
+
   return (
     <Card
       onClick={onClick}
@@ -31,8 +37,9 @@ export function StakingTierCard({ tier, isSelected, onClick }: StakingTierCardPr
     >
       <CardContent className="p-4 text-center">
         <div className="text-lg font-bold">{tier.duration} Days</div>
+        {/* FIX: Display Resultant APR instead of Multiplier */}
         <div className="text-sm text-primary-100 dark:text-primary-300 font-medium">
-          {tier.rewardMultiplier}x Rewards
+          {resultantApr ? `${resultantApr}% APR` : `${tier.rewardMultiplier}x Rewards`}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
           {tier.earlyWithdrawalPenalty}% Early Exit Penalty

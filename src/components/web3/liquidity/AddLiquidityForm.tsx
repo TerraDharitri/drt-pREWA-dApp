@@ -1,126 +1,146 @@
+// src/components/web3/liquidity/AddLiquidityForm.tsx
 "use client";
-import React, { useState } from "react";
-import { useAccount } from "wagmi";
-import { pREWAAddresses } from "@/constants";
-import { useTokenApproval } from "@/hooks/useTokenApproval";
-import { useLiquidity } from "@/hooks/useLiquidity";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/Input";
-import { Spinner } from "@/components/ui/Spinner";
-import { parseUnits } from "viem";
 
-// For this example, we'll hardcode a pREWA-USDT pair.
-// A real dApp would have a token selector.
-const USDT_TESTNET_ADDRESS = "0x..."; // Replace with a real USDT or stablecoin address on BSC Testnet
+import React, { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useLiquidityState } from '@/hooks/useLiquidityState';
+import { useTokenApproval } from '@/hooks/useTokenApproval';
+import { useLiquidity } from '@/hooks/useLiquidity';
+import { TokenSelectorModal } from '../swap/TokenSelectorModal';
+import { LiquidityInput } from './LiquidityInput';
+import { pREWAAddresses } from '@/constants';
+import { useAccount } from 'wagmi';
+import { parseUnits, formatUnits } from 'viem';
+import { Spinner } from '@/components/ui/Spinner';
+import { isValidNumberInput } from '@/lib/utils';
 
 export function AddLiquidityForm() {
-  const { chainId } = useAccount();
-  const liquidityManagerAddress = chainId
-    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager
-    : undefined;
-  const pREWAAddress = chainId
-    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken
-    : undefined;
+    const { chainId } = useAccount();
+    const { 
+        TOKENS, tokenA, tokenB, amountA, amountB, balanceA, balanceB,
+        handleSelectToken, handleAmountAChange, handleAmountBChange,
+        isModalOpen, openModal, closeModal, modalType, reserves
+    } = useLiquidityState();
 
-  const [pREWAAmount, setPREWAAmount] = useState("");
-  const [otherTokenAmount, setOtherTokenAmount] = useState("");
-  const [pairType, setPairType] = useState<"TOKEN" | "BNB">("TOKEN");
+    const liquidityManagerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager : undefined;
 
-  const otherTokenForApproval =
-    pairType === "TOKEN" ? USDT_TESTNET_ADDRESS : undefined;
+    const { allowance: allowanceA, approve: approveA, isLoading: isApprovingA } = useTokenApproval(tokenA?.address, liquidityManagerAddress);
+    const { allowance: allowanceB, approve: approveB, isLoading: isApprovingB } = useTokenApproval(tokenB?.address, liquidityManagerAddress);
 
-  const {
-    allowance: pREWAAllowance,
-    approve: approvePREWA,
-    isLoading: isPREWAApproving,
-  } = useTokenApproval(pREWAAddress, liquidityManagerAddress);
-  const {
-    allowance: otherTokenAllowance,
-    approve: approveOther,
-    isLoading: isOtherApproving,
-  } = useTokenApproval(otherTokenForApproval, liquidityManagerAddress);
-  const {
-    addLiquidity,
-    addLiquidityBNB,
-    isLoading: isLiquidityLoading,
-  } = useLiquidity();
+    const { addLiquidity, addLiquidityBNB, isLoading: isAddingLiquidity } = useLiquidity();
 
-  const needsPREWAApproval =
-    !pREWAAllowance || pREWAAllowance < parseUnits(pREWAAmount || "0", 18);
-  const needsOtherApproval =
-    pairType === "TOKEN" &&
-    (!otherTokenAllowance ||
-      otherTokenAllowance < parseUnits(otherTokenAmount || "0", 18));
+    const isAmountAValid = useMemo(() => isValidNumberInput(amountA), [amountA]);
+    const isAmountBValid = useMemo(() => isValidNumberInput(amountB), [amountB]);
 
-  const handleSubmit = () => {
-    if (pairType === "TOKEN") {
-      if (needsPREWAApproval) approvePREWA();
-      else if (needsOtherApproval) approveOther();
-      else addLiquidity(USDT_TESTNET_ADDRESS, pREWAAmount, otherTokenAmount);
-    } else {
-      // BNB Pair
-      if (needsPREWAApproval) approvePREWA();
-      else addLiquidityBNB(pREWAAmount, otherTokenAmount);
+    const hasSufficientBalanceA = useMemo(() => {
+        if (!isAmountAValid || !balanceA) return false;
+        return parseUnits(amountA, balanceA.decimals) <= balanceA.value;
+    }, [amountA, balanceA, isAmountAValid]);
+
+    const hasSufficientBalanceB = useMemo(() => {
+        if (!isAmountBValid || !balanceB) return false;
+        return parseUnits(amountB, balanceB.decimals) <= balanceB.value;
+    }, [amountB, balanceB, isAmountBValid]);
+
+    const needsApprovalA = useMemo(() => tokenA && isAmountAValid && hasSufficientBalanceA && tokenA.symbol !== 'BNB' && (!allowanceA || allowanceA < parseUnits(amountA, tokenA.decimals)), [isAmountAValid, hasSufficientBalanceA, tokenA, allowanceA, amountA]);
+    const needsApprovalB = useMemo(() => tokenB && isAmountBValid && hasSufficientBalanceB && tokenB.symbol !== 'BNB' && (!allowanceB || allowanceB < parseUnits(amountB, tokenB.decimals)), [isAmountBValid, hasSufficientBalanceB, tokenB, allowanceB, amountB]);
+    
+    const isLoading = isApprovingA || isApprovingB || isAddingLiquidity;
+    
+    const handleAddLiquidity = () => {
+        if (!tokenA || !tokenB) return;
+        if (needsApprovalA) {
+            approveA({ onSuccess: handleAddLiquidity });
+            return;
+        }
+        if (needsApprovalB) {
+            approveB({ onSuccess: handleAddLiquidity });
+            return;
+        }
+
+        const isTokenABNB = tokenA.symbol === 'BNB';
+        const isTokenBBNB = tokenB.symbol === 'BNB';
+        
+        // FIX: Corrected function calls with the right number of arguments
+        if (isTokenABNB) {
+            addLiquidityBNB(tokenB.address, amountB);
+        } else if (isTokenBBNB) {
+            addLiquidityBNB(tokenA.address, amountA);
+        } else {
+            addLiquidity(tokenA.address, tokenB.address, amountA);
+        }
+    };
+    
+    const getButtonText = () => {
+        if (!tokenA || !tokenB) return "Select Tokens";
+        if (!isAmountAValid || !isAmountBValid) return "Enter amounts";
+        if (!hasSufficientBalanceA) return `Insufficient ${tokenA.symbol} Balance`;
+        if (!hasSufficientBalanceB) return `Insufficient ${tokenB.symbol} Balance`;
+        if (needsApprovalA) return `Approve ${tokenA.symbol}`;
+        if (needsApprovalB) return `Approve ${tokenB.symbol}`;
+        return "Add Liquidity";
+    };
+
+    if (!tokenA || !tokenB) {
+        return (
+            <Card className="max-w-md mx-auto">
+                <CardHeader><CardTitle>Add V2 Liquidity</CardTitle></CardHeader>
+                <CardContent className="flex items-center justify-center p-8"><Spinner /></CardContent>
+            </Card>
+        )
     }
-  };
 
-  const getButtonText = () => {
-    const isLoading =
-      isPREWAApproving || isOtherApproving || isLiquidityLoading;
-    if (isLoading) return <Spinner className="h-4 w-4" />;
+    return (
+        <>
+            <Card className="max-w-md mx-auto">
+                <CardHeader>
+                    <CardTitle>Add V2 Liquidity</CardTitle>
+                    <CardDescription>Provide liquidity to earn fees.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <LiquidityInput 
+                        token={tokenA}
+                        amount={amountA}
+                        balance={balanceA}
+                        onAmountChange={handleAmountAChange}
+                        onTokenSelect={() => openModal('A')}
+                    />
 
-    if (pairType === "TOKEN") {
-      if (needsPREWAApproval) return "Approve pREWA";
-      if (needsOtherApproval) return "Approve USDT";
-      return "Add Liquidity";
-    } else {
-      // BNB
-      if (needsPREWAApproval) return "Approve pREWA";
-      return "Add Liquidity";
-    }
-  };
+                    <div className="flex justify-center text-2xl font-bold text-gray-400">+</div>
 
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          onClick={() => setPairType("TOKEN")}
-          variant={pairType === "TOKEN" ? "primary" : "secondary"}
-        >
-          Token Pair
-        </Button>
-        <Button
-          onClick={() => setPairType("BNB")}
-          variant={pairType === "BNB" ? "primary" : "secondary"}
-        >
-          BNB Pair
-        </Button>
-      </div>
-      <div>
-        <label>pREWA Amount</label>
-        <Input
-          type="text"
-          value={pREWAAmount}
-          onChange={(e) => setPREWAAmount(e.target.value)}
-          placeholder="0.0"
-        />
-      </div>
-      <div>
-        <label>{pairType === "TOKEN" ? "USDT Amount" : "BNB Amount"}</label>
-        <Input
-          type="text"
-          value={otherTokenAmount}
-          onChange={(e) => setOtherTokenAmount(e.target.value)}
-          placeholder="0.0"
-        />
-      </div>
-      <Button
-        onClick={handleSubmit}
-        className="w-full"
-        disabled={isPREWAApproving || isOtherApproving || isLiquidityLoading}
-      >
-        {getButtonText()}
-      </Button>
-    </div>
-  );
+                    <LiquidityInput 
+                        token={tokenB}
+                        amount={amountB}
+                        balance={balanceB}
+                        onAmountChange={handleAmountBChange}
+                        onTokenSelect={() => openModal('B')}
+                    />
+
+                    {reserves.reserveA > 0n && (
+                        <div className="text-xs text-center text-gray-500 pt-2">
+                            <p className="font-semibold">Current Pool Rates</p>
+                            <p>1 {tokenA.symbol} = {formatUnits(reserves.reserveB * BigInt(10**tokenA.decimals) / reserves.reserveA, tokenB.decimals)} {tokenB.symbol}</p>
+                            <p>1 {tokenB.symbol} = {formatUnits(reserves.reserveA * BigInt(10**tokenB.decimals) / reserves.reserveB, tokenA.decimals)} {tokenA.symbol}</p>
+                        </div>
+                    )}
+
+                    <Button onClick={handleAddLiquidity} className="w-full" disabled={isLoading || !isAmountAValid || !isAmountBValid || !hasSufficientBalanceA || !hasSufficientBalanceB}>
+                        {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+                        {getButtonText()}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {tokenA && tokenB && (
+                <TokenSelectorModal
+                    isOpen={isModalOpen}
+                    onClose={closeModal}
+                    onSelect={handleSelectToken}
+                    tokenList={TOKENS}
+                    exclude={modalType === 'A' ? [tokenB] : [tokenA]}
+                />
+            )}
+        </>
+    );
 }

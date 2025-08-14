@@ -4,17 +4,55 @@
 import { LPStakingDashboard } from "@/components/web3/lp-staking/LPStakingDashboard";
 import { UserLPStakingSummary } from "@/components/web3/lp-staking/UserLPStakingSummary";
 import { ConnectWalletMessage } from "@/components/web3/ConnectWalletMessage";
-import { useAccount } from "wagmi";
-import React from 'react';
+import { useAccount, useReadContract } from "wagmi";
+import React, { useMemo } from 'react';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { useReadStakingTiers } from "@/hooks/useReadStakingTiers";
 import { StakingTierCard } from "@/components/ui/StakingTierCard";
 import { Spinner } from "@/components/ui/Spinner";
+import { pREWAAddresses, pREWAAbis } from "@/constants";
+import { TOKEN_LISTS } from "@/constants/tokens";
+import { Address } from "viem";
 
 export default function LPStakingPage() {
-  const { isConnected } = useAccount();
+  const { isConnected, chainId } = useAccount();
   const { tiers, isLoading: isLoadingTiers } = useReadStakingTiers('LPStaking');
   const [selectedTier, setSelectedTier] = React.useState(0);
+
+  // FIX: Fetch the Base APR for the primary pREWA/USDT pool
+  const contractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LPStaking : undefined;
+  const pREWA = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]?.find(t => t.symbol === 'pREWA'), [chainId]);
+  const USDT = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]?.find(t => t.symbol === 'USDT'), [chainId]);
+  const routerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.PancakeRouter : undefined;
+
+  const { data: factoryAddress } = useReadContract({
+      address: routerAddress,
+      abi: pREWAAbis.IPancakeRouter,
+      functionName: 'factory',
+      query: { enabled: !!routerAddress },
+  });
+
+  const { data: pairAddress } = useReadContract({
+      address: factoryAddress as Address | undefined,
+      abi: pREWAAbis.IPancakeFactory,
+      functionName: 'getPair',
+      args: [pREWA?.address!, USDT?.address!],
+      query: { enabled: !!factoryAddress && !!pREWA?.address && !!USDT?.address },
+  });
+
+  const { data: poolInfo, isLoading: isLoadingApr } = useReadContract({
+      address: contractAddress,
+      abi: pREWAAbis.LPStaking,
+      functionName: 'getPoolInfo',
+      args: [pairAddress as Address],
+      query: { enabled: !!contractAddress && !!pairAddress },
+  });
+
+  const baseApr = useMemo(() => {
+      if (!poolInfo) return 0;
+      const [baseAPRBps] = poolInfo as [bigint, bigint, boolean];
+      return Number(baseAPRBps) / 100;
+  }, [poolInfo]);
 
   return (
     <div className="space-y-8 mt-4 md:mt-8">
@@ -27,7 +65,7 @@ export default function LPStakingPage() {
           <ConnectWalletMessage />
         ) : (
           <>
-            {isLoadingTiers ? (
+            {isLoadingTiers || isLoadingApr ? (
               <div className="flex justify-center"><Spinner /></div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -35,6 +73,7 @@ export default function LPStakingPage() {
                   <StakingTierCard 
                     key={tier.id}
                     tier={tier}
+                    baseApr={baseApr}
                     isSelected={selectedTier === tier.id}
                     onClick={() => setSelectedTier(tier.id)}
                   />

@@ -1,106 +1,143 @@
 // src/hooks/useVestingActions.ts
 
 "use client";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
-import { Address, parseUnits, BaseError } from "viem";
+import { Address, BaseError, Abi, parseUnits } from "viem";
+import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
 import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export const useVestingActions = () => {
-    const { address, chainId } = useAccount();
-    const queryClient = useQueryClient();
-    const toastIdRef = useRef<string | undefined>();
+  const { chainId } = useAccount();
+  const toastIdRef = useRef<string | undefined>();
 
-    const vestingFactoryAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.VestingFactory : undefined;
+  // FIX: Explicitly rename the `error` from useWriteContract to avoid conflicts.
+  const {
+    data: hash,
+    writeContract,
+    isPending,
+    error: writeError, 
+    reset,
+  } = useWriteContract();
 
-    const { data: hash, writeContractAsync, isPending, error: writeError, reset } = useWriteContract();
+  const createVestingSchedule = async (
+    beneficiary: Address,
+    startTime: number,
+    cliffSeconds: number,
+    durationSeconds: number,
+    isRevocable: boolean,
+    amount: string
+  ) => {
+    
+    const vestingFactoryAddress = chainId
+      ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.VestingFactory
+      : undefined;
+    
+    if (!vestingFactoryAddress) {
+      toast.error("VestingFactory address not found for this chain.");
+      return;
+    }
+    
+    toastIdRef.current = toast.loading("Proposing vesting schedule...");
 
-    const createVestingSchedule = async (
-        beneficiary: Address,
-        startTime: number, 
-        cliffSeconds: number,
-        durationSeconds: number,
-        isRevocable: boolean,
-        amount: string
-    ) => {
-        if (!vestingFactoryAddress) return toast.error("Vesting factory not found.");
-        
-        toastIdRef.current = toast.loading("Waiting for signature to create schedule...");
-        
-        try {
-            await writeContractAsync({
-                address: vestingFactoryAddress,
-                abi: pREWAAbis.VestingFactory,
-                functionName: 'createVesting',
-                args: [
-                    beneficiary,
-                    BigInt(startTime),
-                    BigInt(cliffSeconds),
-                    BigInt(durationSeconds),
-                    isRevocable,
-                    parseUnits(amount, 18)
-                ],
-            });
-        } catch (e: any) {
-            const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-            toast.error(errorMsg, { id: toastIdRef.current });
-            toastIdRef.current = undefined;
+    writeContract({
+      address: vestingFactoryAddress,
+      abi: pREWAAbis.VestingFactory as Abi,
+      functionName: 'createVesting',
+      args: [
+        beneficiary,
+        BigInt(startTime > 0 ? startTime : Math.floor(Date.now() / 1000)),
+        BigInt(cliffSeconds),
+        BigInt(durationSeconds),
+        isRevocable,
+        parseUnits(amount, 18)
+      ],
+    });
+  };
+
+  const releaseVestedTokens = async (vestingContractAddress: Address) => {
+      if (!vestingContractAddress) {
+          toast.error("Vesting contract address is invalid.");
+          return;
+      }
+      
+      toastIdRef.current = toast.loading("Releasing vested tokens...");
+
+      writeContract({
+          address: vestingContractAddress,
+          abi: pREWAAbis.IVesting as Abi,
+          functionName: 'release',
+          args: [],
+      });
+  };
+  
+  const revokeVestingSchedule = async (vestingContractAddress: Address) => {
+      if (!vestingContractAddress) {
+          toast.error("Vesting contract address is invalid.");
+          return;
+      }
+      
+      toastIdRef.current = toast.loading("Revoking vesting schedule...");
+
+      writeContract({
+          address: vestingContractAddress,
+          abi: pREWAAbis.IVesting as Abi,
+          functionName: 'revoke',
+          args: [],
+      });
+  };
+
+  // FIX: Explicitly rename the `error` from useWaitForTransactionReceipt.
+  const { 
+    isLoading: isConfirming, 
+    isSuccess, 
+    isError, 
+    error: receiptError 
+  } = useWaitForTransactionReceipt({ hash });
+
+  // This effect handles the user rejecting the transaction in their wallet.
+  useEffect(() => {
+    if (writeError) {
+      const id = toastIdRef.current;
+      const msg = writeError instanceof BaseError ? writeError.shortMessage : writeError.message;
+      toast.error(msg, { id });
+      toastIdRef.current = undefined;
+      reset();
+    }
+  }, [writeError, reset]);
+
+  // This effect handles the transaction lifecycle after submission.
+  useEffect(() => {
+    const id = toastIdRef.current;
+    if (!hash || !id) return;
+
+    if (isConfirming) {
+      toast.loading("Processing transaction...", { id });
+    } else if (isSuccess) {
+      toast.success("Transaction successful!", { id });
+      reset();
+      toastIdRef.current = undefined;
+    } else if (isError) {
+      // FIX: Use the correct error object (`receiptError`) for transaction failures.
+      let errorMessage = "Transaction failed on-chain.";
+      if (receiptError) {
+        if (receiptError instanceof BaseError) {
+          errorMessage = receiptError.shortMessage;
+        } else if (receiptError instanceof Error) {
+          errorMessage = receiptError.message;
         }
-    };
+      }
+      toast.error(errorMessage, { id });
+      reset();
+      toastIdRef.current = undefined;
+    }
+  }, [hash, isConfirming, isSuccess, isError, receiptError, reset]);
 
-    const releaseVestedTokens = async (vestingContractAddress: Address) => {
-        if (!vestingContractAddress) return toast.error("Vesting contract address is missing.");
-
-        toastIdRef.current = toast.loading("Waiting for signature to release tokens...");
-        
-        try {
-            await writeContractAsync({
-                address: vestingContractAddress,
-                abi: pREWAAbis.IVesting,
-                functionName: 'release',
-                args: [],
-            });
-        } catch (e: any) {
-            const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-            toast.error(errorMsg, { id: toastIdRef.current });
-            toastIdRef.current = undefined;
-        }
-    };
-
-    const { isLoading: isConfirming, isSuccess, isError, error: receiptError } = useWaitForTransactionReceipt({ hash });
-
-    useEffect(() => {
-        const toastId = toastIdRef.current;
-        if (!hash || !toastId) return;
-
-        if (isConfirming) {
-            toast.loading("Processing transaction...", { id: toastId });
-        } else if (isSuccess) {
-            toast.success("Transaction successful!", { id: toastId });
-            
-            toast.loading('Refreshing on-chain data...', { id: 'refetch-toast' });
-            queryClient.invalidateQueries().then(() => {
-                toast.success('Data refreshed!', { id: 'refetch-toast' });
-            }).catch(() => {
-                toast.error('Failed to refresh data.', { id: 'refetch-toast' });
-            });
-            
-            reset();
-            toastIdRef.current = undefined;
-        } else if (isError) {
-            const error = receiptError || writeError;
-            const errorMsg = error instanceof BaseError ? error.shortMessage : (error?.message || "Transaction failed.");
-            toast.error(errorMsg, { id: toastId });
-            reset();
-            toastIdRef.current = undefined;
-        }
-    }, [isConfirming, isSuccess, isError, hash, receiptError, writeError, reset, queryClient]);
-
-    return { 
-        createVestingSchedule, 
-        releaseVestedTokens,
-        isLoading: isPending || isConfirming 
-    };
+  return { 
+    createVestingSchedule, 
+    releaseVestedTokens, 
+    revokeVestingSchedule,
+    isLoading: isPending || isConfirming 
+  };
 };

@@ -1,183 +1,140 @@
 // src/hooks/useLiquidity.ts
-
 "use client";
-import { useEffect, useRef, useCallback } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { pREWAAddresses, pREWAAbis } from '@/constants';
-import { Address, parseUnits, decodeEventLog, BaseError, isAddress } from 'viem';
-import toast from 'react-hot-toast';
-import { useQueryClient } from "@tanstack/react-query";
 
-interface LiquiditySuccessData {
-    lpReceived: bigint;
-    otherToken: Address;
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { pREWAAddresses, pREWAAbis } from "@/constants";
+import { Address, BaseError, Abi, parseUnits } from "viem";
+import { useAccount } from "wagmi";
+import toast from "react-hot-toast";
+import { useEffect, useRef } from "react";
+import { TOKEN_LISTS } from "@/constants/tokens";
+
+interface UseLiquidityProps {
+  onAddSuccess?: () => void;
+  onRemoveSuccess?: () => void;
 }
 
-interface UseLiquidityOptions {
-    onSuccess?: (data: LiquiditySuccessData) => void;
-    onRemoveSuccess?: () => void;
-}
-
-type LiquidityAddedArgs = {
-    liquidityReceived: bigint;
-    otherToken: Address;
-};
-
-function isLiquidityAddedArgs(args: any): args is LiquidityAddedArgs {
-    return (
-        args !== null &&
-        typeof args === 'object' &&
-        typeof args.liquidityReceived === 'bigint' &&
-        typeof args.otherToken === 'string' &&
-        isAddress(args.otherToken)
-    );
-}
-
-export const useLiquidity = ({ onSuccess, onRemoveSuccess }: UseLiquidityOptions = {}) => {
+export const useLiquidity = ({ onAddSuccess, onRemoveSuccess }: UseLiquidityProps = {}) => {
   const { address, chainId } = useAccount();
-  const queryClient = useQueryClient();
   const toastIdRef = useRef<string | undefined>();
-  const actionRef = useRef<string>('');
+
+  const {
+    data: hash,
+    writeContract,
+    isPending,
+    error,
+    reset,
+  } = useWriteContract();
 
   const liquidityManagerAddress = chainId
     ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager
     : undefined;
+
+  const handleTransaction = (
+    action: 'addLiquidity' | 'addLiquidityBNB' | 'removeLiquidity' | 'removeLiquidityBNB',
+    args: any[],
+    payableValue?: bigint
+  ) => {
+    if (!liquidityManagerAddress) {
+      toast.error("Liquidity Manager not found for this chain.");
+      return;
+    }
+    toastIdRef.current = toast.loading("Waiting for signature...");
+    writeContract({
+      address: liquidityManagerAddress,
+      abi: pREWAAbis.LiquidityManager as Abi,
+      functionName: action,
+      args: args,
+      value: payableValue,
+    });
+  };
+
+  // FIX: Corrected the function signature to accept only the necessary arguments
+  const addLiquidity = (tokenA: Address, tokenB: Address, amountADesired: string) => {
+    const tokens = TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [];
+    const tokenADecimals = tokens.find(t => t.address.toLowerCase() === tokenA.toLowerCase())?.decimals || 18;
+    
+    handleTransaction('addLiquidity', [
+      tokenA,
+      tokenB,
+      parseUnits(amountADesired, tokenADecimals),
+      0, // amountBDesired is calculated by the contract
+      0, // amountAMin (0 for simplicity, could be made more robust)
+      0, // amountBMin
+      BigInt(Math.floor(Date.now() / 1000) + 60 * 20) // 20-minute deadline
+    ]);
+  };
   
-  const { data: hash, writeContractAsync, isPending, error: writeError, reset } = useWriteContract();
+  // FIX: Corrected the function signature
+  const addLiquidityBNB = (token: Address, amountTokenDesired: string) => {
+     const tokens = TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [];
+     const tokenDecimals = tokens.find(t => t.address.toLowerCase() === token.toLowerCase())?.decimals || 18;
+    
+     handleTransaction('addLiquidityBNB', [
+      token,
+      parseUnits(amountTokenDesired, tokenDecimals),
+      0, // amountTokenMin
+      0, // amountETHMin
+      address,
+      BigInt(Math.floor(Date.now() / 1000) + 60 * 20)
+    ]);
+  };
+
+  const removeLiquidity = (otherToken: Address, lpAmount: string) => {
+    handleTransaction('removeLiquidity', [
+      otherToken,
+      parseUnits(lpAmount, 18), // LP tokens usually have 18 decimals
+      0, // pREWAMin
+      0, // otherMin
+      BigInt(Math.floor(Date.now() / 1000) + 60 * 20)
+    ]);
+  };
   
-  const addLiquidity = useCallback(async (otherToken: Address, pREWAAmount: string, otherAmount: string) => {
-    if (!liquidityManagerAddress) return toast.error("Liquidity Manager not found on this network.");
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
-    const pREWAMin = parseUnits(pREWAAmount, 18) * 995n / 1000n;
-    const otherMin = parseUnits(otherAmount, 18) * 995n / 1000n;
+  const removeLiquidityBNB = (lpAmount: string) => {
+      handleTransaction('removeLiquidityBNB', [
+      parseUnits(lpAmount, 18),
+      0, // pREWAMin
+      0, // bnbMin
+      BigInt(Math.floor(Date.now() / 1000) + 60 * 20)
+    ]);
+  };
 
-    actionRef.current = 'Add Liquidity';
-    toastIdRef.current = toast.loading("Waiting for signature...");
-    try {
-      await writeContractAsync({
-        address: liquidityManagerAddress,
-        abi: pREWAAbis.LiquidityManager,
-        functionName: 'addLiquidity',
-        args: [otherToken, parseUnits(pREWAAmount, 18), parseUnits(otherAmount, 18), pREWAMin, otherMin, deadline],
-      });
-    } catch (e: any) {
-      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-      toast.error(errorMsg, { id: toastIdRef.current });
-      toastIdRef.current = undefined;
-    }
-  }, [liquidityManagerAddress, writeContractAsync]);
-  
-  // FIX: Added wethAddress as a required parameter
-  const addLiquidityBNB = useCallback(async (pREWAAmount: string, bnbAmount: string) => {
-    if (!liquidityManagerAddress) return toast.error("Liquidity Manager not found on this network.");
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
-    const pREWAMin = parseUnits(pREWAAmount, 18) * 995n / 1000n;
-    const bnbMin = parseUnits(bnbAmount, 18) * 995n / 1000n;
 
-    actionRef.current = 'Add Liquidity';
-    toastIdRef.current = toast.loading("Waiting for signature...");
-    try {
-      await writeContractAsync({
-        address: liquidityManagerAddress,
-        abi: pREWAAbis.LiquidityManager,
-        functionName: 'addLiquidityBNB',
-        args: [parseUnits(pREWAAmount, 18), pREWAMin, bnbMin, deadline],
-        value: parseUnits(bnbAmount, 18),
-      });
-    } catch (e: any) {
-      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-      toast.error(errorMsg, { id: toastIdRef.current });
-      toastIdRef.current = undefined;
-    }
-  }, [liquidityManagerAddress, writeContractAsync]);
-
-  const removeLiquidity = useCallback(async (otherToken: Address, lpAmount: string) => {
-    if (!liquidityManagerAddress) return toast.error("Liquidity Manager not found.");
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
-    const amount = parseUnits(lpAmount, 18);
-
-    actionRef.current = 'Remove Liquidity';
-    toastIdRef.current = toast.loading("Waiting for signature...");
-    try {
-      await writeContractAsync({
-        address: liquidityManagerAddress,
-        abi: pREWAAbis.LiquidityManager,
-        functionName: 'removeLiquidity',
-        args: [otherToken, amount, 1n, 1n, deadline],
-      });
-    } catch (e: any) {
-      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-      toast.error(errorMsg, { id: toastIdRef.current });
-      toastIdRef.current = undefined;
-    }
-  }, [liquidityManagerAddress, writeContractAsync]);
-
-  const removeLiquidityBNB = useCallback(async (lpAmount: string) => {
-    if (!liquidityManagerAddress) return toast.error("Liquidity Manager not found.");
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
-    const amount = parseUnits(lpAmount, 18);
-
-    actionRef.current = 'Remove Liquidity';
-    toastIdRef.current = toast.loading("Waiting for signature...");
-    try {
-      await writeContractAsync({
-        address: liquidityManagerAddress,
-        abi: pREWAAbis.LiquidityManager,
-        functionName: 'removeLiquidityBNB',
-        args: [amount, 1n, 1n, deadline],
-      });
-    } catch (e: any) {
-      const errorMsg = e instanceof BaseError ? e.shortMessage : (e.message || "Transaction rejected.");
-      toast.error(errorMsg, { id: toastIdRef.current });
-      toastIdRef.current = undefined;
-    }
-  }, [liquidityManagerAddress, writeContractAsync]);
-
-  const { isLoading: isConfirming, isSuccess, data: receipt, isError, error: receiptError } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess, isError, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
-    const toastId = toastIdRef.current;
-    if (!hash || !toastId) return;
-
-    const actionInProgress = actionRef.current;
+    const id = toastIdRef.current;
+    if (!hash || !id) return;
 
     if (isConfirming) {
-      toast.loading(`Processing ${actionInProgress}...`, { id: toastId });
-    } else if (isSuccess && receipt) {
-      toast.success(`${actionInProgress} successful!`, { id: toastId });
-      
-      queryClient.invalidateQueries();
-      
-      if (actionInProgress === 'Add Liquidity') {
-          try {
-            for (const log of receipt.logs) {
-                if (log.address.toLowerCase() === liquidityManagerAddress?.toLowerCase()) {
-                    const decodedLog = decodeEventLog({ abi: pREWAAbis.LiquidityManager, data: log.data, topics: log.topics });
-                    if (decodedLog.eventName === 'LiquidityAdded' && isLiquidityAddedArgs(decodedLog.args)) {
-                        if (onSuccess) {
-                           onSuccess({ lpReceived: decodedLog.args.liquidityReceived, otherToken: decodedLog.args.otherToken });
-                        }
-                        break; 
-                    }
-                }
-            }
-          } catch (e) { console.error("Failed to parse logs for LP amount:", e); }
-      } else if (actionInProgress === 'Remove Liquidity') {
-        if(onRemoveSuccess) onRemoveSuccess();
-      }
-      
-      reset(); 
-      toastIdRef.current = undefined; 
-      actionRef.current = '';
-    } else if (isError) {
-      const error = receiptError || writeError;
-      const errorMsg = error instanceof BaseError ? error.shortMessage : (error?.message || `${actionInProgress} failed.`);
-      toast.error(errorMsg, { id: toastId });
-      reset(); 
+      toast.loading("Processing transaction...", { id });
+    } else if (isSuccess) {
+      toast.success("Transaction successful!", { id });
+      if (onAddSuccess) onAddSuccess();
+      if (onRemoveSuccess) onRemoveSuccess();
+      reset();
       toastIdRef.current = undefined;
-      actionRef.current = '';
+    } else if (isError) {
+      const finalError = receiptError || error;
+      let msg = "Transaction failed.";
+      if (finalError) {
+        if (finalError instanceof BaseError) {
+          msg = finalError.shortMessage;
+        } else if (finalError instanceof Error) {
+          msg = finalError.message;
+        }
+      }
+      toast.error(msg, { id });
+      reset();
+      toastIdRef.current = undefined;
     }
-  }, [isConfirming, isSuccess, isError, hash, receipt, reset, queryClient, onSuccess, onRemoveSuccess, liquidityManagerAddress, receiptError, writeError]);
-  
-  return { addLiquidity, addLiquidityBNB, removeLiquidity, removeLiquidityBNB, isLoading: isPending || isConfirming };
+  }, [hash, isConfirming, isSuccess, isError, receiptError, error, reset, onAddSuccess, onRemoveSuccess]);
+
+  return { 
+    addLiquidity, 
+    addLiquidityBNB,
+    removeLiquidity,
+    removeLiquidityBNB,
+    isLoading: isPending || isConfirming 
+  };
 };

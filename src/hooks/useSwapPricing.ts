@@ -1,87 +1,103 @@
 // src/hooks/useSwapPricing.ts
-
 "use client";
-import { useReadContract } from "wagmi";
-import { pREWAAddresses, pREWAAbis } from "@/constants";
-import { useAccount } from "wagmi";
-import { Address, Abi, parseUnits, formatUnits } from "viem";
-import { useDebounce } from "./useDebounce";
-import { useMemo } from "react";
-import { isValidNumberInput } from "@/lib/utils";
+import { useMemo, useEffect, useState } from 'react';
+import { useAccount, useReadContract } from 'wagmi';
+import { pREWAAddresses, pREWAAbis } from '@/constants';
+import { Token } from '@/constants/tokens';
+import { Address, formatUnits, isAddressEqual, parseUnits, zeroAddress } from 'viem';
+import { useDebounce } from './useDebounce';
+import { Field } from './useSwapState';
 
 interface UseSwapPricingProps {
-  fromToken: { address: Address; decimals: number; symbol: string };
-  toToken: { address: Address; decimals: number; symbol: string };
-  fromAmount: string;
+    fromToken?: Token;
+    toToken?: Token;
+    amounts: { from: string; to: string };
+    independentField: Field;
 }
 
-export const useSwapPricing = ({ fromToken, toToken, fromAmount }: UseSwapPricingProps) => {
-  const { chainId } = useAccount();
-  const debouncedFromAmount = useDebounce(fromAmount, 500);
+export const useSwapPricing = ({ fromToken, toToken, amounts, independentField }: UseSwapPricingProps) => {
+    const { chainId } = useAccount();
+    
+    const debouncedFromAmount = useDebounce(amounts.from, 300);
+    const debouncedToAmount = useDebounce(amounts.to, 300);
 
-  const routerAddress = chainId
-    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.PancakeRouter
-    : undefined;
-  const liquidityManagerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager : undefined;
-  const pREWAAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken : undefined;
+    const routerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.PancakeRouter : undefined;
+    const { data: factoryAddress } = useReadContract({
+        address: routerAddress,
+        abi: pREWAAbis.IPancakeRouter,
+        functionName: 'factory',
+        query: { enabled: !!routerAddress },
+    });
 
-  const amountIn = isValidNumberInput(debouncedFromAmount) ? parseUnits(debouncedFromAmount, fromToken.decimals) : 0n;
+    const { data: pairAddress } = useReadContract({
+        address: factoryAddress as Address | undefined,
+        abi: pREWAAbis.IPancakeFactory,
+        functionName: 'getPair',
+        args: [fromToken?.address!, toToken?.address!],
+        query: { enabled: !!factoryAddress && !!fromToken && !!toToken },
+    });
 
-  const { data: amountsOutData, isLoading: isLoadingAmounts, isError: isErrorAmounts } = useReadContract({
-    address: routerAddress,
-    abi: pREWAAbis.IPancakeRouter as Abi,
-    functionName: "getAmountsOut",
-    args: [amountIn, [fromToken.address, toToken.address]],
-    query: {
-      enabled: !!routerAddress && !!fromToken.address && !!toToken.address && amountIn > 0n && isValidNumberInput(debouncedFromAmount),
-      select: (data: unknown) => {
-        const result = data as bigint[];
-        if (Array.isArray(result) && result.length > 1) {
-          return formatUnits(result[1], toToken.decimals);
+    const { data: reservesData, isLoading } = useReadContract({
+        address: pairAddress as Address | undefined,
+        abi: pREWAAbis.IPancakePair,
+        functionName: 'getReserves',
+        query: {
+            enabled: !!pairAddress && pairAddress !== zeroAddress,
+            refetchInterval: 5000,
+        },
+    });
+
+    const { data: token0Address } = useReadContract({
+        address: pairAddress as Address | undefined,
+        abi: pREWAAbis.IPancakePair,
+        functionName: 'token0',
+        query: { enabled: !!pairAddress && pairAddress !== zeroAddress },
+    });
+
+    const [calculatedAmount, setCalculatedAmount] = useState('');
+
+    useEffect(() => {
+        if (!reservesData || !token0Address || !fromToken || !toToken || !Array.isArray(reservesData)) return;
+
+        const [reserve0, reserve1] = reservesData as [bigint, bigint];
+        const fromIsToken0 = isAddressEqual(fromToken.address, token0Address as Address);
+        const [reserveIn, reserveOut] = fromIsToken0 ? [reserve0, reserve1] : [reserve1, reserve0];
+
+        if (independentField === 'from' && debouncedFromAmount) {
+            try {
+                const amountIn = parseUnits(debouncedFromAmount, fromToken.decimals);
+                if (amountIn === 0n) { setCalculatedAmount(''); return; }
+                const amountOut = (amountIn * 997n * reserveOut) / (reserveIn * 1000n + amountIn * 997n);
+                setCalculatedAmount(formatUnits(amountOut, toToken.decimals));
+            } catch { setCalculatedAmount(''); }
+        } else if (independentField === 'to' && debouncedToAmount) {
+            try {
+                const amountOut = parseUnits(debouncedToAmount, toToken.decimals);
+                if (amountOut === 0n) { setCalculatedAmount(''); return; }
+                // Prevent calculation if desired output exceeds pool reserves
+                if (amountOut >= reserveOut) { setCalculatedAmount(''); return; }
+                const amountIn = (reserveIn * amountOut * 1000n) / ((reserveOut - amountOut) * 997n) + 1n;
+                setCalculatedAmount(formatUnits(amountIn, fromToken.decimals));
+            } catch { setCalculatedAmount(''); }
+        } else {
+            setCalculatedAmount('');
         }
-        return "";
-      },
-    },
-  });
-
-  const otherTokenForPair = useMemo(() => {
-    if (!pREWAAddress) return undefined;
-    if (fromToken.address.toLowerCase() === pREWAAddress.toLowerCase()) return toToken;
-    if (toToken.address.toLowerCase() === pREWAAddress.toLowerCase()) return fromToken;
-    return undefined;
-  }, [fromToken, toToken, pREWAAddress]);
-
-  const { data: pairInfo, isLoading: isLoadingPairInfo } = useReadContract({
-    address: liquidityManagerAddress,
-    abi: pREWAAbis.ILiquidityManager,
-    functionName: 'getPairInfo',
-    args: [otherTokenForPair?.address!],
-    query: {
-        enabled: !!liquidityManagerAddress && !!otherTokenForPair,
-        refetchInterval: 10000,
-    }
-  });
-
-  const reserves = useMemo(() => {
-    if (!pairInfo || !Array.isArray(pairInfo) || (pairInfo[0] as Address).toLowerCase() === '0x0000000000000000000000000000000000000000') {
-      return undefined;
-    }
+    }, [debouncedFromAmount, debouncedToAmount, independentField, fromToken, toToken, reservesData, token0Address]);
     
-    const [, , , reserve0, reserve1, pREWAIsToken0, ] = pairInfo as [Address, Address, boolean, bigint, bigint, boolean, number];
-    
-    const isFromTokenPREWA = fromToken.address.toLowerCase() === pREWAAddress?.toLowerCase();
-    
-    if (isFromTokenPREWA) {
-        return pREWAIsToken0 ? { reserveA: reserve0, reserveB: reserve1 } : { reserveA: reserve1, reserveB: reserve0 };
-    } else { 
-        return pREWAIsToken0 ? { reserveA: reserve1, reserveB: reserve0 } : { reserveA: reserve0, reserveB: reserve1 };
-    }
-  }, [pairInfo, fromToken.address, pREWAAddress]);
+    // FIX: Expose reserves in a structured way for the UI to use
+    const reserves = useMemo(() => {
+        if (!reservesData || !Array.isArray(reservesData) || !token0Address || !fromToken || !toToken) return undefined;
+        const [reserve0, reserve1] = reservesData as [bigint, bigint];
+        const fromIsToken0 = isAddressEqual(fromToken.address, token0Address as Address);
+        return fromIsToken0 
+            ? { from: reserve0, to: reserve1 } 
+            : { from: reserve1, to: reserve0 };
+    }, [reservesData, token0Address, fromToken, toToken]);
 
-  return {
-    toAmount: amountsOutData || "",
-    reserves,
-    isLoading: (isLoadingAmounts || isLoadingPairInfo) && amountIn > 0,
-    isError: isErrorAmounts,
-  };
+    return {
+        isLoading,
+        reserves,
+        toAmount: independentField === 'from' ? calculatedAmount : amounts.to,
+        fromAmount: independentField === 'to' ? calculatedAmount : amounts.from,
+    };
 };

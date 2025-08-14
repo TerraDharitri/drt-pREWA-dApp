@@ -16,6 +16,7 @@ const PREWA_MAINNET_ADDRESS: Address = pREWAContracts[56].pREWAToken;
 const USDT_MAINNET_ADDRESS: Address = "0x55d398326f99059fF775485246999027B3197955";
 
 export const TOKEN_LIST_MAINNET: Token[] = [
+  // ... (your existing tokens remain here)
   {
     symbol: "pREWA",
     name: "pREWA Token",
@@ -30,30 +31,6 @@ export const TOKEN_LIST_MAINNET: Token[] = [
     decimals: 18,
     logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png",
   },
-  // NOTE: Other tokens are kept here for easy re-activation in the future.
-  /*
-  {
-    symbol: "BNB",
-    name: "Binance Coin",
-    address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png",
-  },
-  {
-    symbol: "BTCB",
-    name: "Bitcoin BEP20",
-    address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/assets/BTCB-1DE/logo.png",
-  },
-  {
-    symbol: "ETH",
-    name: "Ethereum BEP20",
-    address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png",
-  },
-  */
 ];
 
 // --- Testnet (ChainId 97) ---
@@ -61,6 +38,7 @@ const PREWA_TESTNET_ADDRESS: Address = pREWAContracts[97].pREWAToken;
 const USDT_TESTNET_ADDRESS: Address = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd";
 
 export const TOKEN_LIST_TESTNET: Token[] = [
+  // ... (your existing tokens remain here)
   {
     symbol: "pREWA",
     name: "pREWA Token",
@@ -75,31 +53,29 @@ export const TOKEN_LIST_TESTNET: Token[] = [
     decimals: 18,
     logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png",
   },
-  // NOTE: Other tokens are kept here for easy re-activation in the future.
-  /*
-  {
-    symbol: "BNB",
-    name: "Binance Coin",
-    address: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png",
-  },
-  {
-    symbol: "BTCB",
-    name: "Bitcoin BEP20",
-    address: "0x6ce8dA28E2f864420840cF7447459f344A53d258",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/assets/BTCB-1DE/logo.png",
-  },
-  {
-    symbol: "ETH",
-    name: "Ethereum BEP20",
-    address: "0x8babbb98648b2349be35f3ee307074494af6c351",
-    decimals: 18,
-    logoURI: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png",
-  },
-  */
 ];
+
+// --- LP Token Definitions ---
+export const LP_TOKEN_LISTS: { [chainId: number]: Token[] } = {
+  56: [ // Mainnet
+    {
+      symbol: "pREWA-USDT LP",
+      name: "PancakeSwap pREWA-USDT LP",
+      address: "0x53b0486292ff813cc794465279c9BB8feFf2b964", // Your verified mainnet LP address
+      decimals: 18,
+      logoURI: "/logo.svg", // Or a custom LP icon
+    }
+  ],
+  97: [ // Testnet
+     {
+      symbol: "pREWA-USDT LP",
+      name: "PancakeSwap pREWA-USDT LP",
+      address: "0x53b0486292ff813cc794465279c9BB8feFf2b964", // Assuming testnet uses the same, update if different
+      decimals: 18,
+      logoURI: "/logo.svg",
+    }
+  ]
+};
 
 export const TOKEN_LISTS: { [chainId: number]: Token[] } = {
   56: TOKEN_LIST_MAINNET,

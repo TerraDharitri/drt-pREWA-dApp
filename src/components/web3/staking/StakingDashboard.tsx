@@ -73,17 +73,28 @@ export function StakingDashboard({ totalPositionCount, selectedTierId }: Staking
     maxPositions > 0 &&
     totalPositionCount >= maxPositions;
 
+  // FIX: Add balance check to prevent actions when balance is insufficient
+  const hasSufficientBalance = useMemo(() => {
+    if (!isAmountValid || !pREWABalance) return false;
+    return parseUnits(stakeAmount, pREWABalance.decimals) <= pREWABalance.value;
+  }, [stakeAmount, pREWABalance, isAmountValid]);
+
   const { allowance, approve, isLoading: isApprovalLoading } =
     useTokenApproval(tokenAddress, contractAddress);
   const { stake, isLoading: isStakingLoading } = useStaking();
 
   const needsApproval =
     isAmountValid &&
+    hasSufficientBalance && // <-- Add balance check
     pREWABalance &&
     (!allowance || allowance < parseUnits(stakeAmount || "0", pREWABalance.decimals));
+  
+  const canStake = isAmountValid && hasSufficientBalance && !needsApproval;
 
   const handleStake = () => {
-    if (!isAmountValid) return toast.error("Please enter a valid amount to stake.");
+    if (!isAmountValid) return toast.error("Please enter a valid amount.");
+    if (!hasSufficientBalance) return toast.error("Insufficient pREWA balance.");
+    
     const stakeAction = () => stake(stakeAmount, selectedTierId);
     
     if (needsApproval) {
@@ -100,7 +111,7 @@ export function StakingDashboard({ totalPositionCount, selectedTierId }: Staking
       <CardHeader>
         <CardTitle>Stake Your pREWA</CardTitle>
         {isAtPositionLimit && (
-          <CardDescription className="text-error-100">
+          <CardDescription className="text-destructive">
             You have reached your maximum of {maxPositions} total staking positions.
           </CardDescription>
         )}
@@ -128,17 +139,18 @@ export function StakingDashboard({ totalPositionCount, selectedTierId }: Staking
         </div>
 
         <div className="space-y-2">
+          {/* FIX: Update the disabled logic to check for balance */}
           <Button
             onClick={handleStake}
-            disabled={isLoading || !isAmountValid || isAtPositionLimit}
+            disabled={isLoading || isAtPositionLimit || !isAmountValid || !hasSufficientBalance}
             className="w-full"
           >
             {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-            {needsApproval ? "Approve pREWA" : "Stake"}
+            {!isAmountValid ? "Enter an amount" : !hasSufficientBalance ? "Insufficient Balance" : needsApproval ? "Approve pREWA" : "Stake"}
           </Button>
 
           {hasLowNativeBalance && needsApproval && !isLoading && (
-            <p className="text-center text-xs text-warning-200 dark:text-warning-100 p-2 rounded-md bg-warning-0 dark:bg-warning-300/20">
+            <p className="text-center text-xs text-amber-600 dark:text-amber-500 p-2 rounded-md bg-amber-50 dark:bg-amber-950">
               Your BNB balance is low. You may need more for transaction fees.
             </p>
           )}

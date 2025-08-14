@@ -1,5 +1,4 @@
 // src/components/web3/swap/SwapCard.tsx
-
 "use client";
 import React, { useMemo } from "react";
 import { useAccount, useBalance } from "wagmi";
@@ -13,15 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { parseUnits, Address, formatUnits } from "viem";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowUpDown } from "lucide-react";
 import { TokenSelectorModal } from "./TokenSelectorModal";
 import Image from 'next/image';
 import { isValidNumberInput } from "@/lib/utils";
+import { Token } from "@/constants/tokens";
 
-const TokenButton = ({ token, onClick }: { token: any, onClick: () => void }) => (
-  <Button variant="ghost" className="h-auto px-2 py-1" onClick={onClick}>
+// FIX: Added the missing TokenButton component definition back.
+const TokenButton = ({ token, onClick }: { token: Token, onClick: () => void }) => (
+  <Button variant="ghost" className="h-auto px-2 py-1 flex items-center" onClick={onClick}>
     <Image src={token.logoURI} alt={token.symbol} width={24} height={24} className="rounded-full mr-2" />
-    {token.symbol}
+    <span className="font-semibold">{token.symbol}</span>
     <ChevronDown className="ml-1 h-4 w-4" />
   </Button>
 );
@@ -29,54 +30,81 @@ const TokenButton = ({ token, onClick }: { token: any, onClick: () => void }) =>
 export function SwapCard() {
   const { address, chainId } = useAccount();
   const {
-    TOKENS, fromToken, toToken, fromAmount,
-    setAmount, flipTokens, handleSelectToken,
+    TOKENS, fromToken, toToken,
+    amounts, independentField, onAmountChange,
+    flipTokens, handleSelectToken,
     isModalOpen, modalType, openModal, closeModal
   } = useSwapState();
+  
+  const { from: fromAmount, to: toAmount } = amounts;
 
-  const isAmountValid = useMemo(() => isValidNumberInput(fromAmount), [fromAmount]);
-
-  const { data: fromTokenBalance } = useBalance({
-    address: address,
-    token: fromToken?.symbol !== 'BNB' ? fromToken.address : undefined,
-    query: { enabled: !!fromToken }
+  const { toAmount: calculatedToAmount, fromAmount: calculatedFromAmount, reserves, isLoading: isFetchingPrice } = useSwapPricing({ 
+    fromToken, 
+    toToken, 
+    amounts,
+    independentField
   });
+  
+  const finalFromAmount = independentField === 'to' ? calculatedFromAmount : fromAmount;
+  const finalToAmount = independentField === 'from' ? calculatedToAmount : toAmount;
+  
+  const isAmountValid = useMemo(() => isValidNumberInput(finalFromAmount) && isValidNumberInput(finalToAmount), [finalFromAmount, finalToAmount]);
 
-  const { data: toTokenBalance } = useBalance({
-    address: address,
-    token: toToken?.symbol !== 'BNB' ? toToken.address : undefined,
-    query: { enabled: !!toToken }
-  });
+  const { data: fromTokenBalance } = useBalance({ address, token: (fromToken && fromToken.symbol !== 'BNB') ? fromToken.address : undefined, query: { enabled: !!fromToken } });
+  const { data: toTokenBalance } = useBalance({ address, token: (toToken && toToken.symbol !== 'BNB') ? toToken.address : undefined, query: { enabled: !!toToken } });
+  
+  const hasSufficientBalance = useMemo(() => {
+    if (!fromAmount || !isValidNumberInput(fromAmount) || !fromTokenBalance) return false;
+    return parseUnits(fromAmount, fromTokenBalance.decimals) <= fromTokenBalance.value;
+  }, [fromAmount, fromTokenBalance]);
+
+  const insufficientLiquidity = useMemo(() => {
+    if (independentField === 'to' && isValidNumberInput(toAmount) && reserves?.to && toToken) {
+        return parseUnits(toAmount, toToken.decimals) >= reserves.to;
+    }
+    return false;
+  }, [toAmount, independentField, reserves, toToken]);
 
   const routerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.PancakeRouter : undefined;
-  
-  const { toAmount, reserves, isLoading: isFetchingPrice } = useSwapPricing({ fromToken, toToken, fromAmount });
-  const { allowance, approve, isLoading: isApproving } = useTokenApproval(
-    fromToken?.symbol !== 'BNB' ? fromToken.address : undefined,
-    routerAddress
-  );
+  const { allowance, approve, isLoading: isApproving } = useTokenApproval((fromToken && fromToken.symbol !== 'BNB') ? fromToken.address : undefined, routerAddress);
   const { swap, isLoading: isSwapping } = useSwap();
 
-  const needsApproval = 
-    isAmountValid &&
-    fromToken?.symbol !== 'BNB' &&
-    (!allowance || allowance < parseUnits(fromAmount, fromToken.decimals));
+  const needsApproval = useMemo(() => {
+    if (!fromToken || !isAmountValid || !hasSufficientBalance || fromToken.symbol === 'BNB' || !fromTokenBalance) return false;
+    return !allowance || allowance < parseUnits(fromAmount, fromToken.decimals);
+  }, [isAmountValid, hasSufficientBalance, fromToken, fromTokenBalance, allowance, fromAmount]);
   
   const isLoading = isApproving || isSwapping;
 
   const handlePercentClick = (percent: number) => {
     if (!fromTokenBalance) return;
-    const newAmount = (fromTokenBalance.value * BigInt(percent)) / 100n;
-    setAmount(formatUnits(newAmount, fromTokenBalance.decimals));
+    onAmountChange('from', formatUnits((fromTokenBalance.value * BigInt(percent)) / 100n, fromTokenBalance.decimals));
   };
   
   const handleSwap = () => {
+    if (!fromToken || !toToken) return;
     if (needsApproval) {
-      approve({ onSuccess: () => swap(fromToken, toToken, fromAmount, toAmount) });
+      approve({ onSuccess: () => swap(fromToken, toToken, finalFromAmount, finalToAmount) });
     } else {
-      swap(fromToken, toToken, fromAmount, toAmount);
+      swap(fromToken, toToken, finalFromAmount, finalToAmount);
     }
   };
+
+  const getButtonText = () => {
+      if (insufficientLiquidity) return "Insufficient Liquidity";
+      if (!isValidNumberInput(fromAmount)) return "Enter an amount";
+      if (!hasSufficientBalance) return `Insufficient ${fromToken?.symbol} Balance`;
+      if (needsApproval) return `Approve ${fromToken?.symbol}`;
+      return "Swap";
+  };
+
+  if (!fromToken || !toToken) {
+      return (
+          <Card className="max-w-md mx-auto">
+              <CardContent className="flex items-center justify-center p-8"><Spinner /></CardContent>
+          </Card>
+      )
+  }
 
   return (
     <>
@@ -96,8 +124,8 @@ export function SwapCard() {
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
-                  <Input value={fromAmount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" type="text" className="web3-input !border-0 !px-0 !h-auto !text-2xl" />
-                  {fromToken && <TokenButton token={fromToken} onClick={() => openModal('from')} />}
+                  <Input value={finalFromAmount} onChange={(e) => onAmountChange('from', e.target.value)} placeholder="0.0" type="text" className="web3-input !border-0 !px-0 !h-auto !text-2xl" />
+                  <TokenButton token={fromToken} onClick={() => openModal('from')} />
               </div>
               <div className="flex justify-end gap-2">
                 {[25, 50, 75, 100].map(p => (
@@ -109,7 +137,9 @@ export function SwapCard() {
           </div>
           
           <div className="flex justify-center py-1">
-            <Button onClick={flipTokens} size="icon" variant="ghost" className="h-8 w-8 rounded-full border bg-background hover:bg-accent">↓</Button>
+            <Button onClick={flipTokens} size="icon" variant="ghost" className="h-8 w-8 rounded-full border bg-background hover:bg-accent">
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
           </div>
           
           <div className="p-3 border rounded-md bg-greyscale-25 dark:bg-dark-surface">
@@ -122,38 +152,35 @@ export function SwapCard() {
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
-                  <Input value={isFetchingPrice ? '...' : toAmount} placeholder="0.0" type="text" readOnly className="web3-input !border-0 !px-0 !h-auto !text-2xl" />
-                  {toToken && <TokenButton token={toToken} onClick={() => openModal('to')} />}
+                  <Input value={finalToAmount} onChange={(e) => onAmountChange('to', e.target.value)} placeholder="0.0" type="text" className="web3-input !border-0 !px-0 !h-auto !text-2xl" />
+                  <TokenButton token={toToken} onClick={() => openModal('to')} />
               </div>
           </div>
 
-          {reserves && fromToken && toToken && reserves.reserveA > 0n && reserves.reserveB > 0n && (
+          {reserves && reserves.from > 0n && (
             <Card className="bg-greyscale-25 dark:bg-dark-surface !mt-4">
                 <CardContent className="text-sm p-3 space-y-2">
                     <h4 className="font-semibold">Current Pool Rates</h4>
-                    <div className="flex justify-between"><span>1 {fromToken.symbol} = {formatUnits(reserves.reserveB * (10n ** 18n) / reserves.reserveA, 18)} {toToken.symbol}</span></div>
-                    <div className="flex justify-between"><span>1 {toToken.symbol} = {formatUnits(reserves.reserveA * (10n ** 18n) / reserves.reserveB, 18)} {fromToken.symbol}</span></div>
+                    <div className="flex justify-between"><span>1 {fromToken.symbol} = {formatUnits(reserves.to * (10n ** BigInt(fromToken.decimals)) / reserves.from, toToken.decimals)} {toToken.symbol}</span></div>
+                    <div className="flex justify-between"><span>1 {toToken.symbol} = {formatUnits(reserves.from * (10n ** BigInt(toToken.decimals)) / reserves.to, fromToken.decimals)} {fromToken.symbol}</span></div>
                 </CardContent>
             </Card>
           )}
 
           <div className="pt-4">
-            <Button onClick={handleSwap} disabled={isLoading || isFetchingPrice || !isAmountValid || !toAmount || !fromToken || !toToken} className="w-full">
+            <Button onClick={handleSwap} disabled={isLoading || isFetchingPrice || !isAmountValid || !hasSufficientBalance || insufficientLiquidity} className="w-full">
               {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-              {needsApproval ? `Approve ${fromToken?.symbol}` : 'Swap'}
+              {getButtonText()}
             </Button>
           </div>
         </CardContent>
       </Card>
-      {fromToken && toToken && 
-        <TokenSelectorModal
-            isOpen={isModalOpen}
-            onClose={closeModal}
-            onSelect={handleSelectToken}
-            tokenList={TOKENS}
-            exclude={modalType === 'from' ? [toToken] : [fromToken]}
-        />
-      }
+      <TokenSelectorModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSelect={handleSelectToken}
+          tokenList={TOKENS}
+      />
     </>
   );
 }

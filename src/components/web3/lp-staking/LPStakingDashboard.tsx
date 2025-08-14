@@ -5,14 +5,12 @@ import { useAccount, useBalance } from 'wagmi';
 import { pREWAAddresses } from '@/constants';
 import { useTokenApproval } from '@/hooks/useTokenApproval';
 import { useLPStaking } from '@/hooks/useLPStaking';
-import { useReadLiquidityPositions } from '@/hooks/useReadLiquidityPositions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
-import { parseUnits, formatUnits, Address, isAddressEqual } from 'viem';
-import { TOKEN_LISTS } from '@/constants/tokens';
-import { formatAddress } from '@/lib/web3-utils';
+import { parseUnits, formatUnits, Address } from 'viem';
+import { LP_TOKEN_LISTS } from '@/constants/tokens'; // FIX: Import the new LP token list
 import { isValidNumberInput } from '@/lib/utils';
 
 interface LPStakingDashboardProps {
@@ -21,26 +19,25 @@ interface LPStakingDashboardProps {
 
 export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) {
   const { address, chainId } = useAccount();
-  const { positions: availableLPs, isLoading: isLoadingLPs } = useReadLiquidityPositions();
-  
-  const [selectedLp, setSelectedLp] = useState<Address | undefined>();
-  const [amount, setAmount] = useState('');
 
+  // FIX: Use the canonical list of stakeable LP pools from constants
+  const stakeablePools = useMemo(() => LP_TOKEN_LISTS[chainId as keyof typeof LP_TOKEN_LISTS] || [], [chainId]);
+  
+  const [selectedLp, setSelectedLp] = useState<Address | undefined>(stakeablePools[0]?.address);
+  const [amount, setAmount] = useState('');
   const isAmountValid = useMemo(() => isValidNumberInput(amount), [amount]);
 
   useEffect(() => {
-      if (availableLPs.length > 0 && !selectedLp) {
-          setSelectedLp(availableLPs[0].lpTokenAddress);
-      }
-  }, [availableLPs, selectedLp]);
+    // Set the first available pool as default when chain changes
+    if (stakeablePools.length > 0) {
+      setSelectedLp(stakeablePools[0].address);
+    }
+  }, [stakeablePools]);
 
   const lpStakingContractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LPStaking : undefined;
   
   const { allowance, approve, isLoading: isApproving } = useTokenApproval(selectedLp, lpStakingContractAddress);
   const { stakeLPTokens, isLoading: isStaking } = useLPStaking();
-
-  const needsApproval = isAmountValid && selectedLp && (!allowance || allowance < parseUnits(amount, 18));
-  const isLoading = isApproving || isStaking;
 
   const { data: lpBalance } = useBalance({
     address: address,
@@ -48,8 +45,16 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
     query: { enabled: !!selectedLp, refetchInterval: 5000 }
   });
 
+  const hasSufficientBalance = useMemo(() => {
+    if (!isAmountValid || !lpBalance) return false;
+    return parseUnits(amount, lpBalance.decimals) <= lpBalance.value;
+  }, [amount, lpBalance, isAmountValid]);
+
+  const needsApproval = isAmountValid && selectedLp && hasSufficientBalance && (!allowance || allowance < parseUnits(amount, 18));
+  const isLoading = isApproving || isStaking;
+
   const handleStake = () => {
-    if (!selectedLp || !isAmountValid) return;
+    if (!selectedLp || !isAmountValid || !hasSufficientBalance) return;
     const stakeAction = () => stakeLPTokens(selectedLp, amount, selectedTierId);
 
     if (needsApproval) {
@@ -58,37 +63,26 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
       stakeAction();
     }
   };
-  
-  const getPoolName = (lp: {lpTokenAddress: Address, otherTokenAddress: Address}) => {
-      const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
-      const otherTokenInfo = tokens.find(t => isAddressEqual(t.address, lp.otherTokenAddress));
-      return otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(lp.otherTokenAddress)}`;
-  }
 
-  if (isLoadingLPs) {
-    return <div className="flex justify-center p-8"><Spinner /></div>;
-  }
-
-  if (availableLPs.length === 0) {
-      return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Stake LP Tokens</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-center text-gray-500">
-                    You do not hold any pREWA LP tokens in your wallet. 
-                    Please go to the "Pools" page first to provide liquidity.
-                </p>
-            </CardContent>
-        </Card>
-      );
+  if (stakeablePools.length === 0) {
+    return (
+      <Card>
+          <CardHeader>
+              <CardTitle>Stake LP Tokens</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <p className="text-center text-gray-500">
+                  There are currently no active LP staking pools on this network.
+              </p>
+          </CardContent>
+      </Card>
+    );
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Stake Your LP Tokens</CardTitle>
+        <CardTitle>Stake LP Tokens</CardTitle>
         <CardDescription>Select a pool and amount to stake in Tier {selectedTierId}.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -102,8 +96,8 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
                 }}
                 className="w-full p-2 border rounded-md bg-transparent dark:bg-dark-surface dark:border-dark-border"
             >
-                {availableLPs.map(lp => (
-                    <option key={lp.id} value={lp.lpTokenAddress}>{getPoolName(lp)}</option>
+                {stakeablePools.map(lp => (
+                    <option key={lp.address} value={lp.address}>{lp.name}</option>
                 ))}
             </select>
           </div>
@@ -114,9 +108,9 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
             </div>
             <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" />
           </div>
-          <Button onClick={handleStake} disabled={isLoading || !isAmountValid || !selectedLp} className="w-full">
+          <Button onClick={handleStake} disabled={isLoading || !isAmountValid || !selectedLp || !hasSufficientBalance} className="w-full">
             {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-            {needsApproval ? "Approve LP Token" : "Stake LP Tokens"}
+            {!isAmountValid ? "Enter an amount" : !hasSufficientBalance ? "Insufficient LP Balance" : needsApproval ? "Approve LP Token" : "Stake LP Tokens"}
           </Button>
       </CardContent>
     </Card>

@@ -1,40 +1,42 @@
 // src/hooks/useSwapState.ts
-
 "use client";
+
 import { useState, useMemo, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { TOKEN_LISTS, Token } from "@/constants/tokens";
+
+export type Field = 'from' | 'to';
 
 export const useSwapState = () => {
   const { chainId } = useAccount();
 
   const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
 
-  // FIX: Default to USDT and pREWA
-  const [fromToken, setFromToken] = useState<Token>(() => TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
-  const [toToken, setToToken] = useState<Token>(() => TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
-  const [fromAmount, setFromAmount] = useState("");
+  const [fromToken, setFromToken] = useState<Token | undefined>(undefined);
+  const [toToken, setToToken] = useState<Token | undefined>(undefined);
+  
+  const [independentField, setIndependentField] = useState<Field>('from');
+  const [amounts, setAmounts] = useState<{ from: string; to: string }>({ from: '', to: '' });
+
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'from' | 'to' | null>(null);
 
   useEffect(() => {
-      // FIX: Ensure defaults reset correctly on network change
+    if (TOKENS.length > 0) {
       setFromToken(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
       setToToken(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
-      setFromAmount("");
+      setAmounts({ from: '', to: '' });
+    }
   }, [chainId, TOKENS]);
 
-  const openModal = (type: 'from' | 'to') => {
-    setModalType(type);
-    setModalOpen(true);
+  const onAmountChange = (field: Field, value: string) => {
+    setIndependentField(field);
+    setAmounts(prev => ({ ...prev, [field]: value }));
   };
 
-  const closeModal = () => setModalOpen(false);
-  
-  const setAmount = (amount: string) => setFromAmount(amount);
-
   const flipTokens = () => {
-    setFromAmount("");
+    setIndependentField(prev => prev === 'from' ? 'to' : 'from');
+    setAmounts(prev => ({ from: prev.to, to: prev.from }));
     const newFrom = toToken;
     const newTo = fromToken;
     setFromToken(newFrom);
@@ -42,25 +44,34 @@ export const useSwapState = () => {
   };
 
   const handleSelectToken = (selectedToken: Token) => {
-    setFromAmount('');
-    
+    setAmounts({ from: '', to: '' });
     if (modalType === 'from') {
-      if (selectedToken.address === toToken.address) {
-        setToToken(fromToken);
+      if (toToken && selectedToken.address === toToken.address) {
+        flipTokens();
+      } else {
+        setFromToken(selectedToken);
       }
-      setFromToken(selectedToken);
-    } else { // modalType === 'to'
-      if (selectedToken.address === fromToken.address) {
-        setFromToken(toToken);
+    } else if (modalType === 'to') {
+      if (fromToken && selectedToken.address === fromToken.address) {
+        flipTokens();
+      } else {
+        setToToken(selectedToken);
       }
-      setToToken(selectedToken);
     }
     closeModal();
   };
+
+  const openModal = (type: 'from' | 'to') => {
+    setModalType(type);
+    setModalOpen(true);
+  };
+  
+  const closeModal = () => setModalOpen(false);
   
   return {
-    TOKENS, fromToken, toToken, fromAmount,
-    setAmount, flipTokens, handleSelectToken,
+    TOKENS, fromToken, toToken,
+    amounts, independentField, onAmountChange,
+    flipTokens, handleSelectToken,
     isModalOpen, modalType, openModal, closeModal
   };
 };

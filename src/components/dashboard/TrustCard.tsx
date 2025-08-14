@@ -14,15 +14,27 @@ export function TrustCard() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">
+          {/* FIX: Updated href to point directly to BscScan */}
           <TrustLink
-            href="/security#contracts"
-            label="View Contracts"
+            href="https://bscscan.com/address/0x828f07e624f227fde5906611461deab26dccc600"
+            label="View Contract"
             icon={Wallet}
+            isExternal
           />
-          <TrustLink href="/security#audits" label="Read Audits" icon={FileText} />
-          <TrustLink href="/security#governance" label="Multisig & Roles" icon={Shield} />
+          {/* FIX: Updated href to point to the GitHub audit */}
+          <TrustLink 
+            href="https://github.com/Saferico/The-pREWA-Protocol-smart-contracts-audit-" 
+            label="Read Audits" 
+            icon={FileText} 
+            isExternal
+          />
+          <TrustLink 
+            href="/security#governance" 
+            label="Multisig & Roles" 
+            icon={Shield} 
+          />
            <TrustLink 
-            href="https://dappbay.bnbchain.org/risk-scanner" 
+            href="https://dappbay.bnbchain.org/risk-scanner/0x828f07e624f227fde5906611461deab26dccc600" 
             label="Risk Scanner" 
             icon={ExternalLink} 
             isExternal

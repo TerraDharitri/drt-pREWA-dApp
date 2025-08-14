@@ -5,16 +5,21 @@ import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
 import { config as wagmiConfig } from "@/config/wagmi";
-import { useEffect } from "react";
-import { reconnect } from "@wagmi/core"; // Import the reconnect function
+import { useEffect, useRef } from "react";
+import { reconnect } from "@wagmi/core";
 
 const queryClient = new QueryClient();
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
-  // FIX: Add this useEffect to safely reconnect on page load
-  // This stabilizes the connection and prevents HMR from causing proposal errors.
+  // FIX: Use a ref to ensure reconnect logic only runs once,
+  // preventing the "WalletConnect Core is already initialized" warning in development.
+  const hasReconnectRun = useRef(false);
+
   useEffect(() => {
-    reconnect(wagmiConfig);
+    if (!hasReconnectRun.current) {
+      reconnect(wagmiConfig);
+      hasReconnectRun.current = true;
+    }
   }, []);
 
   return (

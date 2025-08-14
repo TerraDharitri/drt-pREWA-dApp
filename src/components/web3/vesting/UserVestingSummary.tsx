@@ -2,7 +2,6 @@
 
 "use client";
 import React from "react";
-import { useAccount } from "wagmi";
 import { useReadVestingSchedules } from "@/hooks/useReadVestingSchedules";
 import { VestingScheduleRow } from "./VestingScheduleRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -10,6 +9,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useProtocolStats } from "@/hooks/useProtocolStats";
 import { TOKEN_LISTS } from "@/constants/tokens";
 import { formatUnits } from "viem";
+import { useAccount } from "wagmi";
+
 
 interface UserVestingSummaryProps {
   isAdmin: boolean;
@@ -67,6 +68,7 @@ export function UserVestingSummary({ isAdmin = false }: UserVestingSummaryProps)
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Releasable</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Start Time</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Duration</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Cliff</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
             </tr>
