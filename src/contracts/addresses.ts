@@ -36,7 +36,7 @@ export const pREWAContracts = {
     TokenStaking: '0xF7a5FAE59E91BCE350404F5a173936fae7c83E9b',
     VestingFactory: '0x5F7F833c911C0607cEf7aD31BE839ef07939E7b4',
     PancakeRouter: '0xD99D1c33F9fC3444f8101754aBC46c52416550D1',
-    ProtocolAdminSafe: "0x...",
+    ProtocolAdminSafe: "0xd80F79d95b6520C8a5125df9ea669e5f6DA48969",
   },
 } as const;
 

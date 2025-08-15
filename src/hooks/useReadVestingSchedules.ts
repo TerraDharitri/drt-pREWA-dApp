@@ -43,8 +43,7 @@ export const useReadVestingSchedules = (isAdmin: boolean = false) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-        // FIX: Add a guard to ensure vestingFactory is defined before proceeding.
-        if ((!primaryAddress && !isAdmin) || !vestingFactory?.address) return [];
+        if (!vestingFactory?.address) return [];
 
         let uniqueScheduleAddresses: Address[] = [];
 
@@ -69,48 +68,49 @@ export const useReadVestingSchedules = (isAdmin: boolean = false) => {
                     hasMore = false;
                 }
             }
-
         } else if (primaryAddress) {
+            // FIX: For the "Your Schedules" view, ONLY fetch schedules where the user is the beneficiary.
             const addressResults = await readContracts(wagmiConfig, {
                 contracts: [
-                { ...vestingFactory, functionName: 'getVestingsByOwner', args: [primaryAddress] },
                 { ...vestingFactory, functionName: 'getVestingsByBeneficiary', args: [primaryAddress] },
                 ]
             });
-            const owned = (addressResults[0]?.status === 'success' ? addressResults[0].result : []) as Address[] || [];
-            const beneficiary = (addressResults[1]?.status === 'success' ? addressResults[1].result : []) as Address[] || [];
-            uniqueScheduleAddresses = Array.from(new Set([...owned, ...beneficiary]));
+            const beneficiarySchedules = (addressResults[0]?.status === 'success' ? addressResults[0].result : []) as Address[] || [];
+            uniqueScheduleAddresses = Array.from(new Set(beneficiarySchedules));
+        } else {
+            // If not admin and no address is connected, return an empty array for "Your Schedules".
+            return [];
         }
 
         if (uniqueScheduleAddresses.length === 0) return [];
       
-      const scheduleDetailContracts = uniqueScheduleAddresses.flatMap(contractAddress => ([
-        { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'getVestingSchedule' },
-        { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'releasableAmount' },
-        { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'owner' },
-      ]));
+        const scheduleDetailContracts = uniqueScheduleAddresses.flatMap(contractAddress => ([
+            { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'getVestingSchedule' },
+            { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'releasableAmount' },
+            { address: contractAddress, abi: pREWAAbis.IVesting as Abi, functionName: 'owner' },
+        ]));
       
-      const scheduleDetailsData = await readContracts(wagmiConfig, { contracts: scheduleDetailContracts, allowFailure: true });
+        const scheduleDetailsData = await readContracts(wagmiConfig, { contracts: scheduleDetailContracts, allowFailure: true });
 
-      const schedules: VestingScheduleDetails[] = [];
-      for (let i = 0; i < uniqueScheduleAddresses.length; i++) {
-        const scheduleResult = scheduleDetailsData[i * 3];
-        const releasableResult = scheduleDetailsData[i * 3 + 1];
-        const ownerResult = scheduleDetailsData[i * 3 + 2];
-        
-        if (scheduleResult.status === 'success' && releasableResult.status === 'success' && ownerResult.status === 'success') {
-          const [beneficiary, totalAmount, startTime, cliffDuration, duration, releasedAmount, revocable, revoked] = scheduleResult.result as any[];
-          schedules.push({
-            id: uniqueScheduleAddresses[i],
-            beneficiary, totalAmount, startTime, cliffDuration, duration, releasedAmount, revocable, revoked,
-            isOwner: ownerResult.result === primaryAddress, 
-            releasableAmount: releasableResult.result as bigint,
-          });
+        const schedules: VestingScheduleDetails[] = [];
+        for (let i = 0; i < uniqueScheduleAddresses.length; i++) {
+            const scheduleResult = scheduleDetailsData[i * 3];
+            const releasableResult = scheduleDetailsData[i * 3 + 1];
+            const ownerResult = scheduleDetailsData[i * 3 + 2];
+            
+            if (scheduleResult.status === 'success' && releasableResult.status === 'success' && ownerResult.status === 'success') {
+            const [beneficiary, totalAmount, startTime, cliffDuration, duration, releasedAmount, revocable, revoked] = scheduleResult.result as any[];
+            schedules.push({
+                id: uniqueScheduleAddresses[i],
+                beneficiary, totalAmount, startTime, cliffDuration, duration, releasedAmount, revocable, revoked,
+                isOwner: primaryAddress ? (ownerResult.result as Address).toLowerCase() === primaryAddress.toLowerCase() : false, 
+                releasableAmount: releasableResult.result as bigint,
+            });
+            }
         }
-      }
-      return schedules.sort((a, b) => Number(b.startTime) - Number(a.startTime)); // Ensure correct sorting
+        return schedules.sort((a, b) => Number(b.startTime) - Number(a.startTime));
     },
-    enabled: !!vestingFactory?.address && (isAdmin || !!primaryAddress),
+    enabled: !!vestingFactory?.address,
   });
 
   return { 

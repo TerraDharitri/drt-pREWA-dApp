@@ -1,7 +1,7 @@
 // src/config/wagmi.ts
 import { createConfig, http } from "wagmi";
 import { bsc, bscTestnet } from "wagmi/chains";
-import { injected, walletConnect, coinbaseWallet, safe } from "wagmi/connectors"; // ⬅ add 'safe'
+import { injected, walletConnect, coinbaseWallet, safe } from "wagmi/connectors";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
@@ -11,7 +11,7 @@ export const config = createConfig({
   chains,
   connectors: [
     // Safe connector first so it wins inside the Safe iframe
-    safe(),                                             // ⬅ new
+    safe(),
     injected({ target: "metaMask" }),
     coinbaseWallet({ appName: "Dharitri Protocol" }),
     ...(projectId
@@ -24,6 +24,7 @@ export const config = createConfig({
               url: "https://prewa.dharitri.org",
               icons: [],
             },
+            // ConnectKit handles the QR/modal
             showQrModal: false,
           }),
         ]
@@ -42,3 +43,5 @@ declare module "wagmi" {
     config: typeof config;
   }
 }
+
+export type AppWagmiConfig = typeof config;

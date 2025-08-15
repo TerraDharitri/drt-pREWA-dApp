@@ -7,12 +7,13 @@ import { Address, BaseError, Abi, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
 import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query"; // FIX: Import the query client
 
 export const useVestingActions = () => {
   const { chainId } = useAccount();
   const toastIdRef = useRef<string | undefined>();
+  const queryClient = useQueryClient(); // FIX: Get an instance of the query client
 
-  // FIX: Explicitly rename the `error` from useWriteContract to avoid conflicts.
   const {
     data: hash,
     writeContract,
@@ -47,7 +48,7 @@ export const useVestingActions = () => {
       functionName: 'createVesting',
       args: [
         beneficiary,
-        BigInt(startTime > 0 ? startTime : Math.floor(Date.now() / 1000)),
+        BigInt(startTime),
         BigInt(cliffSeconds),
         BigInt(durationSeconds),
         isRevocable,
@@ -88,7 +89,6 @@ export const useVestingActions = () => {
       });
   };
 
-  // FIX: Explicitly rename the `error` from useWaitForTransactionReceipt.
   const { 
     isLoading: isConfirming, 
     isSuccess, 
@@ -96,7 +96,6 @@ export const useVestingActions = () => {
     error: receiptError 
   } = useWaitForTransactionReceipt({ hash });
 
-  // This effect handles the user rejecting the transaction in their wallet.
   useEffect(() => {
     if (writeError) {
       const id = toastIdRef.current;
@@ -107,7 +106,6 @@ export const useVestingActions = () => {
     }
   }, [writeError, reset]);
 
-  // This effect handles the transaction lifecycle after submission.
   useEffect(() => {
     const id = toastIdRef.current;
     if (!hash || !id) return;
@@ -116,10 +114,11 @@ export const useVestingActions = () => {
       toast.loading("Processing transaction...", { id });
     } else if (isSuccess) {
       toast.success("Transaction successful!", { id });
+      // FIX: Invalidate the vestingSchedules query to trigger an automatic refetch
+      queryClient.invalidateQueries({ queryKey: ['vestingSchedules'] });
       reset();
       toastIdRef.current = undefined;
     } else if (isError) {
-      // FIX: Use the correct error object (`receiptError`) for transaction failures.
       let errorMessage = "Transaction failed on-chain.";
       if (receiptError) {
         if (receiptError instanceof BaseError) {
@@ -132,7 +131,7 @@ export const useVestingActions = () => {
       reset();
       toastIdRef.current = undefined;
     }
-  }, [hash, isConfirming, isSuccess, isError, receiptError, reset]);
+  }, [hash, isConfirming, isSuccess, isError, receiptError, writeError, reset, queryClient]);
 
   return { 
     createVestingSchedule, 
