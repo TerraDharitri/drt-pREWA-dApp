@@ -10,28 +10,33 @@ import { config as wagmiConfig } from "@/config/wagmi";
 
 const queryClient = new QueryClient();
 
+// Patterns of WalletConnect v2 transient errors we want to swallow globally
+const WC_IGNORABLE_ERRORS = /(proposal expired|no matching key|session topic doesn't exist)/i;
+
 export function Web3Provider({ children }: { children: React.ReactNode }) {
-  // Ensure reconnect runs only once (avoids “WalletConnect Core is already initialized” in dev)
   const hasReconnectRun = useRef(false);
 
   useEffect(() => {
     if (!hasReconnectRun.current) {
-      // Reconnect only authorized/previous sessions (wagmi won't propose a fresh WC session here)
       reconnect(wagmiConfig);
       hasReconnectRun.current = true;
     }
   }, []);
 
-  // Guard: prevent WalletConnect “Proposal expired” from crashing the app after idle time
+  // FIX: Prevent benign WC errors from triggering Next.js's error overlay
   useEffect(() => {
-    const onUnhandledRejection = (e: PromiseRejectionEvent) => {
-      const msg = String(e?.reason?.message ?? e?.reason ?? "");
-      if (/proposal expired/i.test(msg)) {
-        e.preventDefault(); // swallow just this known, harmless timeout
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reasonString = JSON.stringify(event.reason);
+      if (WC_IGNORABLE_ERRORS.test(reasonString)) {
+        event.preventDefault();
+        console.warn("Caught and prevented benign WalletConnect error:", reasonString);
       }
     };
+
     window.addEventListener("unhandledrejection", onUnhandledRejection);
-    return () => window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    };
   }, []);
 
   return (

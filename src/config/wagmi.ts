@@ -4,13 +4,13 @@ import { bsc, bscTestnet } from "wagmi/chains";
 import { injected, walletConnect, coinbaseWallet, safe } from "wagmi/connectors";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prewa.dharitri.org";
 
 export const chains = [bsc, bscTestnet] as const;
 
 export const config = createConfig({
   chains,
   connectors: [
-    // Safe connector first so it wins inside the Safe iframe
     safe(),
     injected({ target: "metaMask" }),
     coinbaseWallet({ appName: "Dharitri Protocol" }),
@@ -21,10 +21,10 @@ export const config = createConfig({
             metadata: {
               name: "Dharitri Protocol",
               description: "pREWA vesting & admin",
-              url: "https://prewa.dharitri.org",
+              url: appUrl,
               icons: [],
             },
-            // ConnectKit handles the QR/modal
+            relayUrl: "wss://relay.walletconnect.com",
             showQrModal: false,
           }),
         ]
@@ -35,13 +35,12 @@ export const config = createConfig({
     [bscTestnet.id]: http(process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL),
   },
   multiInjectedProviderDiscovery: true,
+  // FIX: Removed the deprecated 'reconnectOnMount' property.
+  // The reconnect logic is correctly handled by the `reconnect()` action in Web3Provider.tsx.
 });
 
-// TS “Register” remains as you already have
 declare module "wagmi" {
   interface Register {
     config: typeof config;
   }
 }
-
-export type AppWagmiConfig = typeof config;
