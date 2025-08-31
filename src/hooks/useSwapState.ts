@@ -10,7 +10,7 @@ export type Field = 'from' | 'to';
 export const useSwapState = () => {
   const { chainId } = useAccount();
 
-  const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
+  const TOKENS = useMemo(() => Array.isArray(TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]) ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [], [chainId]);
 
   const [fromToken, setFromToken] = useState<Token | undefined>(undefined);
   const [toToken, setToToken] = useState<Token | undefined>(undefined);
@@ -22,12 +22,12 @@ export const useSwapState = () => {
   const [modalType, setModalType] = useState<'from' | 'to' | null>(null);
 
   useEffect(() => {
-    if (TOKENS.length > 0) {
+    if (TOKENS.length > 0 && (!fromToken || !toToken)) {
       setFromToken(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
       setToToken(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
       setAmounts({ from: '', to: '' });
     }
-  }, [chainId, TOKENS]);
+  }, [chainId, TOKENS, fromToken, toToken]);
 
   const onAmountChange = (field: Field, value: string) => {
     setIndependentField(field);

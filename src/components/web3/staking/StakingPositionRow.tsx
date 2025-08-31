@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/Spinner";
-import { Modal } from "@/components/ui/Modal"; // <-- FIX: Import Modal
+import { Modal } from "@/components/ui/Modal";
 import { useStaking } from "@/hooks/useStaking";
 import { formatBigInt, formatTimestamp } from "@/lib/web3-utils";
 import { StakingPositionDetails } from "@/hooks/useReadStakingPositions";
@@ -15,13 +15,13 @@ interface StakingPositionRowProps {
 export function StakingPositionRow({ position, index }: StakingPositionRowProps) {
   const { unstake, claimRewards, isLoading: isActionLoading } = useStaking();
   const [action, setAction] = useState<"unstake" | "claim" | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // <-- FIX: State for modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isEnded = position.endTime <= BigInt(Math.floor(Date.now() / 1000));
   const isUnstaking = isActionLoading && action === "unstake";
   const isClaiming = isActionLoading && action === "claim";
 
-  // --- FIX: Calculate penalty and final amount ---
+  // Early-unstake penalty
   const penaltyAmount = isEnded ? 0n : (position.amount * position.earlyWithdrawalPenalty) / 10000n;
   const amountToReceive = position.amount - penaltyAmount;
 
@@ -38,34 +38,41 @@ export function StakingPositionRow({ position, index }: StakingPositionRowProps)
 
   return (
     <>
+      {/* FIX: Removed responsive classes here, responsiveness is now handled by the parent container's scroll */}
       <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-        <td className="px-4 py-3 font-mono text-sm">{position.positionId.toString()}</td>
-        <td className="px-4 py-3 font-semibold">{formatBigInt(position.amount)} pREWA</td>
-        <td className="px-4 py-3">{position.tierId.toString()}</td>
-        <td className="px-4 py-3">
-          {isEnded ? (
-            <span className="text-greyscale-400">Ended</span>
-          ) : (
-            <span className="text-success-100">Staking</span>
-          )}
+        <td className="px-4 py-3 font-mono text-sm whitespace-nowrap">{position.positionId.toString()}</td>
+        <td className="px-4 py-3 font-semibold whitespace-nowrap">{formatBigInt(position.amount)} pREWA</td>
+        <td className="px-4 py-3 whitespace-nowrap text-center">{position.tierId.toString()}</td>
+        <td className="px-4 py-3 whitespace-nowrap">
+          {isEnded ? <span className="text-greyscale-400">Ended</span> : <span className="text-success-100">Staking</span>}
         </td>
-        <td className="px-4 py-3">{formatTimestamp(position.startTime)}</td>
-        <td className="px-4 py-3">{formatTimestamp(position.endTime)}</td>
-        <td className="px-4 py-3 font-semibold text-primary-100">{`${formatBigInt(position.pendingRewards)} pREWA`}</td>
-        <td className="px-4 py-3 font-semibold">{`${formatBigInt(position.expectedRewards)} pREWA`}</td>
+        <td className="px-4 py-3 whitespace-nowrap">{formatTimestamp(position.startTime)}</td>
+        <td className="px-4 py-3 whitespace-nowrap">{formatTimestamp(position.endTime)}</td>
+        <td className="px-4 py-3 font-semibold text-primary-100 whitespace-nowrap">
+          {`${formatBigInt(position.pendingRewards)} pREWA`}
+        </td>
+        <td className="px-4 py-3 font-semibold whitespace-nowrap">
+          {`${formatBigInt(position.expectedRewards)} pREWA`}
+        </td>
         <td className="px-4 py-3 text-right">
           <div className="flex items-center justify-end gap-2">
             {isEnded ? (
-              <Button onClick={handleConfirmUnstake} variant="primary" size="sm" disabled={isActionLoading}>
+              <Button onClick={handleConfirmUnstake} variant="primary" size="sm" disabled={isActionLoading} className="whitespace-nowrap">
                 {isUnstaking && <Spinner className="mr-2" />}
                 Claim & Unstake
               </Button>
             ) : (
               <>
-                <Button onClick={() => setIsModalOpen(true)} variant="outline" size="sm" disabled={isActionLoading}>
+                <Button onClick={() => setIsModalOpen(true)} variant="outline" size="sm" disabled={isActionLoading} className="whitespace-nowrap">
                   Unstake
                 </Button>
-                <Button onClick={handleClaim} variant="primary" size="sm" disabled={isActionLoading || position.pendingRewards === 0n || !isEnded}>
+                <Button
+                  onClick={handleClaim}
+                  variant="primary"
+                  size="sm"
+                  disabled={isActionLoading || position.pendingRewards === 0n}
+                  className="whitespace-nowrap"
+                >
                   {isClaiming && <Spinner className="mr-2" />}
                   Claim Rewards
                 </Button>
@@ -75,12 +82,7 @@ export function StakingPositionRow({ position, index }: StakingPositionRowProps)
         </td>
       </tr>
 
-      {/* --- FIX: Render the confirmation modal --- */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Confirm Early Unstake"
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Confirm Early Unstake">
         <div className="space-y-4">
           <p className="text-sm text-greyscale-400">
             You are about to unstake your position before the end date. An early withdrawal penalty will be applied.
@@ -104,7 +106,9 @@ export function StakingPositionRow({ position, index }: StakingPositionRowProps)
             Note: Any accrued rewards will be automatically claimed and sent to you in the same transaction.
           </p>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
             <Button variant="destructive" onClick={handleConfirmUnstake} disabled={isActionLoading}>
               {isUnstaking && <Spinner className="mr-2" />}
               Confirm Unstake

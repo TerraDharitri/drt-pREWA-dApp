@@ -24,10 +24,13 @@ import SecurityModule from '@/contracts/abis/SecurityModule.json';
 import TokenStaking from '@/contracts/abis/TokenStaking.json';
 import VestingFactory from '@/contracts/abis/VestingFactory.json';
 import VestingImplementation from '@/contracts/abis/VestingImplementation.json';
-// FIX: Import the strongly-typed ABI from the new .ts file
 import { safeAbi } from '@/contracts/abis/Safe';
+// Fixed import path - ensure the file exists at this location
+import { IPancakePairABI as TypedIPancakePairABI, SwapEventABI } from '@/contracts/abis/IPancakePair';
+
 
 export const pREWAAddresses = pREWAContracts;
+export { pREWAContracts };
 
 export const pREWAAbis = {
   AccessControl: AccessControl.abi,
@@ -54,6 +57,8 @@ export const pREWAAbis = {
   TokenStaking: TokenStaking.abi,
   VestingFactory: VestingFactory.abi,
   VestingImplementation: VestingImplementation.abi,
-  // FIX: Export the strongly-typed ABI
   Safe: safeAbi,
+  TypedIPancakePair: TypedIPancakePairABI,
+  SwapEvent: SwapEventABI,
+  
 };

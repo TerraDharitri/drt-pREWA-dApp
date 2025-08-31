@@ -69,12 +69,12 @@ const DashboardManagerComponent = () => {
   };
 
   const tabs: DashboardTab[] = [
-    "Swap",
+    // "Swap",
     "Liquidity",
     "Stake",
     "LP Staking",
     "Vesting",
-    "Donate",
+    "Donate", //enable once donattion contracts deployed
   ];
 
   return (

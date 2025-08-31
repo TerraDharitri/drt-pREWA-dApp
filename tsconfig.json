@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,37 +14,16 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    /* IMPORTANT: keep global types minimal so we don't pull in duplicate
-       Wagmi registrations from dependencies */
-    "types": [
-      "node",
-      "trusted-types"
-    ],
-    /* Path aliases */
-    "baseUrl": ".", // <-- add this
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    },
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ],
+     "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  /* Make sure we pick up only our code + our single wagmi registration */
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.d.ts", // <-- add this to include .d.ts
-    ".next/types/**/*.ts",
-    "src/types/**/*.d.ts" // <-- where your wagmi.d.ts lives
-  ],
-  "exclude": [
-    "node_modules",
-    "contracts",
-    "monitoring"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "monitoring"]
 }

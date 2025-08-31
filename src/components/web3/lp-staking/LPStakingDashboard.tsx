@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
-import { parseUnits, formatUnits, Address } from 'viem';
-import { LP_TOKEN_LISTS } from '@/constants/tokens'; // FIX: Import the new LP token list
+import { parseUnits, formatUnits, Address, isAddressEqual } from 'viem';
+import { LP_TOKEN_LISTS, TOKEN_LISTS } from '@/constants/tokens';
 import { isValidNumberInput } from '@/lib/utils';
+import { formatAddress } from '@/lib/web3-utils';
 
 interface LPStakingDashboardProps {
   selectedTierId: number;
@@ -20,7 +21,6 @@ interface LPStakingDashboardProps {
 export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) {
   const { address, chainId } = useAccount();
 
-  // FIX: Use the canonical list of stakeable LP pools from constants
   const stakeablePools = useMemo(() => LP_TOKEN_LISTS[chainId as keyof typeof LP_TOKEN_LISTS] || [], [chainId]);
   
   const [selectedLp, setSelectedLp] = useState<Address | undefined>(stakeablePools[0]?.address);
@@ -28,11 +28,10 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
   const isAmountValid = useMemo(() => isValidNumberInput(amount), [amount]);
 
   useEffect(() => {
-    // Set the first available pool as default when chain changes
-    if (stakeablePools.length > 0) {
+    if (stakeablePools.length > 0 && !selectedLp) {
       setSelectedLp(stakeablePools[0].address);
     }
-  }, [stakeablePools]);
+  }, [stakeablePools, selectedLp]);
 
   const lpStakingContractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LPStaking : undefined;
   
@@ -45,11 +44,17 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
     query: { enabled: !!selectedLp, refetchInterval: 5000 }
   });
 
+  const handlePercentClick = (percent: number) => {
+    if (!lpBalance) return;
+    const newAmount = (lpBalance.value * BigInt(percent)) / 100n;
+    setAmount(formatUnits(newAmount, lpBalance.decimals));
+  };
+
   const hasSufficientBalance = useMemo(() => {
     if (!isAmountValid || !lpBalance) return false;
     return parseUnits(amount, lpBalance.decimals) <= lpBalance.value;
   }, [amount, lpBalance, isAmountValid]);
-
+  
   const needsApproval = isAmountValid && selectedLp && hasSufficientBalance && (!allowance || allowance < parseUnits(amount, 18));
   const isLoading = isApproving || isStaking;
 
@@ -63,56 +68,71 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
       stakeAction();
     }
   };
-
-  if (stakeablePools.length === 0) {
-    return (
-      <Card>
-          <CardHeader>
-              <CardTitle>Stake LP Tokens</CardTitle>
-          </CardHeader>
-          <CardContent>
-              <p className="text-center text-gray-500">
-                  There are currently no active LP staking pools on this network.
-              </p>
-          </CardContent>
-      </Card>
-    );
+  
+  const getPoolName = (lpAddress: Address) => {
+      const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
+      const lpInfo = stakeablePools.find(p => isAddressEqual(p.address, lpAddress));
+      return lpInfo ? lpInfo.name : `LP Token ${formatAddress(lpAddress)}`;
   }
 
+  // FIX: Logic for the main button's text and disabled state
+  const getButtonText = () => {
+    if (stakeablePools.length === 0) return "No Pools Available";
+    if (!isAmountValid) return "Enter an amount";
+    if (!hasSufficientBalance) return "Insufficient LP Balance";
+    if (needsApproval) return "Approve LP Token";
+    return "Stake LP Tokens";
+  };
+  const isButtonDisabled = isLoading || !isAmountValid || !selectedLp || !hasSufficientBalance;
+
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Stake LP Tokens</CardTitle>
-        <CardDescription>Select a pool and amount to stake in Tier {selectedTierId}.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Pool to Stake</label>
-            <select
-                value={selectedLp}
-                onChange={(e) => {
-                    setSelectedLp(e.target.value as Address);
-                    setAmount('');
-                }}
-                className="w-full p-2 border rounded-md bg-transparent dark:bg-dark-surface dark:border-dark-border"
-            >
-                {stakeablePools.map(lp => (
-                    <option key={lp.address} value={lp.address}>{lp.name}</option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <div className="flex justify-between items-baseline mb-1">
-                <label className="text-sm font-medium">Amount to Stake</label>
-                {lpBalance && <span className="text-xs text-gray-500">Balance: {formatUnits(lpBalance.value, lpBalance.decimals)}</span>}
-            </div>
-            <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" />
-          </div>
-          <Button onClick={handleStake} disabled={isLoading || !isAmountValid || !selectedLp || !hasSufficientBalance} className="w-full">
-            {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-            {!isAmountValid ? "Enter an amount" : !hasSufficientBalance ? "Insufficient LP Balance" : needsApproval ? "Approve LP Token" : "Stake LP Tokens"}
-          </Button>
-      </CardContent>
-    </Card>
+    // FIX: Removed the outer Card to prevent double-wrapping and layout issues.
+    <div className="space-y-4">
+        <Card>
+            <CardHeader>
+                <CardTitle>Stake LP Tokens</CardTitle>
+                <CardDescription>Select a pool and amount to stake in Tier {selectedTierId}.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Pool to Stake</label>
+                <select
+                    value={selectedLp}
+                    onChange={(e) => {
+                        setSelectedLp(e.target.value as Address);
+                        setAmount('');
+                    }}
+                    disabled={stakeablePools.length === 0}
+                    className="w-full p-2 border rounded-md bg-transparent dark:bg-dark-surface dark:border-dark-border"
+                >
+                    {stakeablePools.length === 0 && <option>No pools available</option>}
+                    {stakeablePools.map(lp => (
+                        <option key={lp.address} value={lp.address}>{lp.name}</option>
+                    ))}
+                </select>
+              </div>
+              <div className="p-3 border rounded-md bg-greyscale-25 dark:bg-dark-surface space-y-2">
+                <div className="flex justify-between items-baseline mb-1">
+                    <label className="text-sm font-medium">Amount to Stake</label>
+                    {lpBalance && <span className="text-xs text-gray-500">Balance: {formatUnits(lpBalance.value, lpBalance.decimals)}</span>}
+                </div>
+                <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" disabled={!selectedLp}/>
+                 {/* FIX: Add the percentage buttons back */}
+                <div className="flex justify-end gap-2">
+                  {[25, 50, 75, 100].map(p => (
+                      <Button key={p} size="sm" variant="secondary" onClick={() => handlePercentClick(p)} disabled={!lpBalance || lpBalance.value === 0n}>
+                          {p === 100 ? 'MAX' : `${p}%`}
+                      </Button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={handleStake} disabled={isButtonDisabled} className="w-full">
+                {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+                {getButtonText()}
+              </Button>
+            </CardContent>
+        </Card>
+    </div>
   );
 }

@@ -1,106 +1,255 @@
-// src/components/web3/donate/DonateCard.tsx
 "use client";
-import React, { useState, useMemo } from "react";
-import { useReadContract, useAccount, useBalance } from "wagmi";
-import { pREWAAddresses, pREWAAbis } from "@/constants";
+
+import { useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/Card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/Input";
-import { Spinner } from "@/components/ui/Spinner";
+  Address,
+  Hex,
+  erc20Abi,
+  formatUnits,
+} from "viem";
+import { useAccount, useChainId, usePublicClient } from "wagmi";
 import { useDonate } from "@/hooks/useDonate";
-import { formatAddress } from "@/lib/web3-utils";
-import { isValidNumberInput } from "@/lib/utils";
-import { Address, formatUnits, isAddress, parseUnits } from "viem";
-import toast from "react-hot-toast";
+import { pREWAContracts } from "@/contracts/addresses";
+import { DonationAbi } from "@/contracts/abis/Donation";
+import {
+  getDonationTokensForChain,
+  type DonationToken,
+} from "@/contracts/donationTokens";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/Spinner";
 
-export function DonateCard() {
-  const { chainId, address } = useAccount();
+function isPositiveNumber(input: string): boolean {
+  if (!input) return false;
+  if (!/^\d*\.?\d*$/.test(input)) return false;
+  const n = Number(input);
+  return Number.isFinite(n) && n > 0;
+}
+
+export default function DonateCard() {
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const pc = usePublicClient({ chainId });
+  const { donateNative, donateToken } = useDonate();
+
   const [amount, setAmount] = useState("");
-  const { donate, isLoading } = useDonate();
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("");
+  const [tokens, setTokens] = useState<DonationToken[]>(() => getDonationTokensForChain(chainId));
+  const [tokenIndex, setTokenIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [emailMsg, setEmailMsg] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
+  const [tokenId, setTokenId] = useState<bigint | null>(null);
 
-  const isAmountValid = useMemo(() => isValidNumberInput(amount), [amount]);
+  const donationContract = (pREWAContracts as Record<number, { Donation?: string }>)[chainId]?.Donation;
+  const explorer = chainId === 56 ? "https://bscscan.com" : "https://testnet.bscscan.com";
+  const isAmountValid = useMemo(() => isPositiveNumber(amount), [amount]);
+  const fullName = useMemo(() => [firstName, middleName, lastName].map((s) => s.trim()).filter(Boolean).join(" "), [firstName, middleName, lastName]);
+  const fullAddress = useMemo(() => [streetAddress, city, postalCode, country].map((s) => s.trim()).filter(Boolean).join(", "), [streetAddress, city, postalCode, country]);
+  const erc20DonateSupported = useMemo(() => (DonationAbi as ReadonlyArray<any>).some((x) => x?.type === "function" && (x?.name === "donateToken" || x?.name === "donateERC20")), []);
 
-  const emergencyControllerAddress = chainId
-    ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]
-        ?.EmergencyController
-    : undefined;
+  useEffect(() => {
+    setTokens(getDonationTokensForChain(chainId));
+    setTokenIndex(0);
+  }, [chainId]);
 
-  const { data: donationAddressResult } = useReadContract({
-    address: emergencyControllerAddress,
-    abi: pREWAAbis.EmergencyController,
-    functionName: "recoveryAdminAddress",
-    query: { enabled: !!emergencyControllerAddress },
-  });
+  useEffect(() => {
+    (async () => {
+      const t = tokens[tokenIndex];
+      if (!t || !t.address || t.decimals) return;
+      try {
+        const [sym, dec] = await Promise.all([
+          pc?.readContract({ address: t.address, abi: erc20Abi, functionName: "symbol" }),
+          pc?.readContract({ address: t.address, abi: erc20Abi, functionName: "decimals" }),
+        ]);
+        setTokens(prev => prev.map((x, i) => i === tokenIndex ? { ...x, symbol: typeof sym === "string" ? sym : x.symbol, decimals: Number(dec ?? 18) } : x));
+      } catch {
+        setTokens(prev => prev.map((x, i) => (i === tokenIndex ? { ...x, decimals: 18 } : x)));
+      }
+    })();
+  }, [tokenIndex, chainId, pc, tokens]);
 
-  const donationAddress = donationAddressResult as Address | undefined;
-  const typedChainId = chainId === 56 ? 56 : chainId === 97 ? 97 : undefined;
+  const visibleTokens = useMemo(() => tokens.filter((t) => t.address === null || erc20DonateSupported), [tokens, erc20DonateSupported]);
 
-  const { data: balance } = useBalance({
-    address,
-    chainId: typedChainId,
-  });
+  useEffect(() => {
+    if (tokenIndex >= visibleTokens.length) setTokenIndex(0);
+  }, [visibleTokens.length, tokenIndex]);
 
-  const handleDonate = () => {
-    if (donationAddress && isAddress(donationAddress) && isAmountValid) {
-      const amountInWei = parseUnits(amount, 18); // BNB has 18 decimals
-      donate(donationAddress, amountInWei);
-    } else {
-      toast.error("Donation address is not configured or available.");
+  async function onDonate() {
+    setError(null);
+    setEmailMsg(null);
+    setTxHash(null);
+    setTokenId(null);
+
+    if (!address) { setError("Connect a wallet."); return; }
+    if (!donationContract) { setError(`Donation contract not configured for chain ${chainId}.`); return; }
+    if (!isAmountValid) { setError("Enter a valid positive amount."); return; }
+    if (!firstName.trim() || !lastName.trim()) { setError("First & Last name are required for a legal receipt."); return; }
+    if (!streetAddress.trim() || !city.trim() || !country.trim()) { setError("A physical address (Street, City, Country) is required for a legal receipt."); return; }
+
+    const token = visibleTokens[tokenIndex];
+    if (!token) return;
+
+    try {
+      setIsLoading(true);
+      let result: Awaited<ReturnType<typeof donateNative>> | Awaited<ReturnType<typeof donateToken>>;
+
+      if (token.address === null) {
+        const { parseEther } = await import("viem");
+        const wei = parseEther(amount);
+        result = await donateNative(wei, fullName, fullAddress);
+      } else {
+        const { parseUnits } = await import("viem");
+        const decimals = token.decimals ?? 18;
+        const raw = parseUnits(amount, decimals);
+        result = await donateToken(token.address as Address, raw, token.symbol || "TOKEN", decimals, fullName, fullAddress);
+      }
+
+      if (result.imagePngDataUrl) {
+        const a = document.createElement("a");
+        a.href = result.imagePngDataUrl;
+        a.download = `Dharitri-Certificate-${result.tokenId ?? "donation"}.png`;
+        a.click();
+      }
+
+      if (email) {
+        try {
+          const r = await fetch("/api/email-certificate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: email, txHash: result.txHash, certificateId: result.tokenId?.toString() ?? null, pngDataUrl: result.imagePngDataUrl }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) setEmailMsg(j?.error ? `Email error: ${j.error}` : `Email API error (${r.status})`);
+          else setEmailMsg(j?.id ? `Email queued (id: ${j.id})` : "Email queued");
+        } catch (e: any) {
+          setEmailMsg(e?.message || "Email request failed");
+        }
+      }
+
+      setTxHash(result.txHash);
+      setTokenId(result.tokenId ?? null);
+      setAmount("");
+    } catch (e: any) {
+      setError(e?.shortMessage || e?.message || "Donation failed.");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
+
+  async function copyContract() {
+    if (!donationContract) return;
+    try {
+      await navigator.clipboard.writeText(donationContract);
+      setEmailMsg("Contract address copied");
+      setTimeout(() => setEmailMsg(null), 1500);
+    } catch {}
+  }
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Directly Fund a Greener Planet</CardTitle>
-        <CardDescription>
-          100% of donations are allocated by the Dharitri Foundation to farmer services, on-chain carbon credit projects, and community grants — ensuring long-term protocol sustainability.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <div className="flex justify-between items-baseline mb-1">
-            <label className="text-sm font-medium">Donation Amount (BNB)</label>
-            {balance && (
-              <span className="text-xs text-gray-500">
-                Balance: {formatUnits(balance.value, balance.decimals)}
-              </span>
-            )}
+    <div className="web3-card mx-auto max-w-2xl p-6 sm:p-8">
+        <h3 className="text-xl font-semibold text-greyscale-900 dark:text-dark-text-primary">Directly Fund a Greener Planet</h3>
+        <p className="mb-6 mt-1 text-base text-greyscale-400 dark:text-dark-text-secondary">
+          100% of donations are allocated to farmer services, on-chain carbon credit projects, and community grants.
+          <br />
+          <span className="text-sm font-semibold text-warning-200 dark:text-warning-100">
+            Note: Your legal name and address are required for a tax-deductible receipt. This information is used ONLY to render your certificate on your device and is never stored by us.
+          </span>
+        </p>
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+                <label className="web3-label">Legal First Name *</label>
+                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" className="web3-input" />
+            </div>
+            <div>
+                <label className="web3-label">Legal Middle Name</label>
+                <input value={middleName} onChange={(e) => setMiddleName(e.target.value)} placeholder="" className="web3-input" />
+            </div>
+            <div>
+                <label className="web3-label">Legal Last Name *</label>
+                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" className="web3-input" />
+            </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="web3-label">Street Address *</label>
+          <input value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="123 Main Street" className="web3-input" />
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="web3-label">City *</label>
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Anytown" className="web3-input" />
           </div>
-          <Input
-            type="text"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.0"
-            className="mt-1"
-          />
+          <div>
+            <label className="web3-label">Postal Code</label>
+            <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="12345" className="web3-input" />
+          </div>
         </div>
 
-        <div className="text-xs text-center text-gray-500">
-          {donationAddress ? (
-            <span>
-              Donations will be sent to: {formatAddress(donationAddress)}
-            </span>
-          ) : (
-            <Spinner />
-          )}
+        <div className="mt-4">
+          <label className="web3-label">Country *</label>
+          <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States" className="web3-input" />
         </div>
 
-        <Button
-          onClick={handleDonate}
-          disabled={isLoading || !isAmountValid || !donationAddress}
-          className="w-full"
-        >
-          {isLoading && <Spinner className="mr-2" />}
-          Donate
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="web3-label">Asset</label>
+            <select value={tokenIndex} onChange={(e) => setTokenIndex(Number(e.target.value))} className="web3-input">
+              {visibleTokens.map((t, i) => (
+                <option key={i} value={i}>{t.address === null ? "BNB" : (t.symbol || "TOKEN")}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="web3-label">Amount</label>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.0" className="web3-input" />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="web3-label">Email (to receive PDF certificate) — optional</label>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" className="web3-input" />
+        </div>
+        
+        {donationContract && (
+          <div className="mt-4">
+            <label className="web3-label">Donation Contract</label>
+            <input className="web3-input font-mono !text-sm" readOnly value={donationContract} />
+            <button onClick={copyContract} className="mt-1.5 text-sm text-primary-100 hover:underline dark:text-primary-300">
+              Copy address
+            </button>
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+            {error && <div className="rounded-lg border border-error-100/50 bg-error-0/50 p-3 text-sm text-error-200 dark:bg-error-300/10">{error}</div>}
+            {emailMsg && <div className="rounded-lg border border-warning-100/50 bg-warning-0/50 p-3 text-sm text-warning-200 dark:bg-warning-300/10">{emailMsg}</div>}
+            {txHash && (
+                <div className="rounded-lg border border-success-100/50 bg-success-0/50 p-3 text-sm text-success-200 dark:bg-success-300/10">
+                    Donation sent! {tokenId != null && <>Certificate ID: <b>{tokenId.toString()}</b>. </>}
+                    Tx:&nbsp;
+                    <a className="underline" href={`${explorer}/tx/${txHash}`} target="_blank" rel="noreferrer">
+                    {txHash.slice(0, 10)}…{txHash.slice(-8)}
+                    </a>
+                </div>
+            )}
+        </div>
+
+        <Button onClick={onDonate} disabled={!isAmountValid || !address || !donationContract || isLoading} className="mt-6 w-full" variant="primary" size="lg">
+          {isLoading ? <><Spinner className="mr-2" /> Processing…</> : "Donate"}
         </Button>
-      </CardContent>
-    </Card>
+
+        {!address && <p className="mt-4 text-center text-sm text-greyscale-400">Connect a wallet to donate.</p>}
+        {address && !donationContract && <p className="mt-4 text-center text-sm text-greyscale-400">Donation contract is not configured for this network (chain {chainId}).</p>}
+    </div>
   );
 }

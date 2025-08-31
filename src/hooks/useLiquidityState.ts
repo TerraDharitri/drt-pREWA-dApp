@@ -9,7 +9,7 @@ import { Address, formatUnits, parseUnits } from "viem";
 export const useLiquidityState = () => {
   const { address: accountAddress, chainId, isConnected } = useAccount();
 
-  const TOKENS = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [], [chainId]);
+  const TOKENS = useMemo(() => Array.isArray(TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]) ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [], [chainId]);
   
   const [tokenA, setTokenA] = useState<Token | undefined>(undefined);
   const [tokenB, setTokenB] = useState<Token | undefined>(undefined);
@@ -79,12 +79,12 @@ export const useLiquidityState = () => {
   const handleSelectToken = (selectedToken: Token) => {
     if (modalType === 'A') {
       if (tokenB && selectedToken.address === tokenB.address) {
-        setTokenB(tokenA); // Flip
+        setTokenB(tokenA);
       }
       setTokenA(selectedToken);
     } else if (modalType === 'B') {
       if (tokenA && selectedToken.address === tokenA.address) {
-        setTokenA(tokenB); // Flip
+        setTokenA(tokenB);
       }
       setTokenB(selectedToken);
     }

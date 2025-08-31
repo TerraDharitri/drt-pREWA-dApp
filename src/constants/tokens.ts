@@ -3,6 +3,8 @@
 import { Address } from "viem";
 import { pREWAContracts } from "@/contracts/addresses";
 
+
+
 export type Token = {
   symbol: string;
   name: string;
@@ -70,7 +72,7 @@ export const LP_TOKEN_LISTS: { [chainId: number]: Token[] } = {
      {
       symbol: "pREWA-USDT LP",
       name: "PancakeSwap pREWA-USDT LP",
-      address: "0x53b0486292ff813cc794465279c9BB8feFf2b964", // Assuming testnet uses the same, update if different
+      address: "0xb01c948466512e8cfC2881D52911c6A1a62eD21a", // Assuming testnet uses the same, update if different
       decimals: 18,
       logoURI: "/logo.svg",
     }

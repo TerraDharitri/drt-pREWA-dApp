@@ -1,9 +1,15 @@
-// app/error.tsx
+// src/app/error.tsx
 "use client";
 
-export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   const msg = error?.message || "";
-  const isWcTimeout = /proposal expired/i.test(msg);
+  const isWcTimeout = /(proposal expired|no matching key|session topic doesn't exist)/i.test(msg);
 
   return (
     <html>
@@ -13,8 +19,8 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {isWcTimeout
-            ? "Keep your wallet app open and approve the request, then try again."
-            : "Please try again."}
+            ? "Your previous session may have expired. Please open your wallet to approve the connection, then try again."
+            : "Please try again or reload the page."}
         </p>
         <button onClick={() => reset()} className="mt-4 rounded-md border px-3 py-1.5">
           Retry

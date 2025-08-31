@@ -35,7 +35,7 @@ export function StakingTierCard({ tier, baseApr, isSelected, onClick }: StakingT
           : "border-border hover:border-primary-100/50 dark:hover:border-primary-300/50"
       )}
     >
-      <CardContent className="p-4 text-center">
+      <CardContent className="p-1 text-center">
         <div className="text-lg font-bold">{tier.duration} Days</div>
         {/* FIX: Display Resultant APR instead of Multiplier */}
         <div className="text-sm text-primary-100 dark:text-primary-300 font-medium">

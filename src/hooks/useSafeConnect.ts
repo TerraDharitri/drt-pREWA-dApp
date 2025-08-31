@@ -2,52 +2,37 @@
 "use client";
 
 import { useConnect, useDisconnect, Connector } from "wagmi";
+import toast from "react-hot-toast";
 
-const isWcSessionError = (msg: string): boolean =>
+const isWcSessionError = (msg: string) =>
   /(proposal expired|no matching key|session topic doesn't exist)/i.test(msg);
 
 function clearWcKeys() {
   try {
     Object.keys(localStorage).forEach((k) => {
-      if (k.startsWith("wc@2")) {
-        localStorage.removeItem(k);
-      }
+      if (k.startsWith("wc@2")) localStorage.removeItem(k);
     });
-  } catch (e) {
-    console.error("Failed to clear WalletConnect keys from localStorage", e);
-  }
+  } catch {}
 }
 
 export function useSafeConnect() {
   const { connectAsync, connectors } = useConnect();
   const { disconnectAsync } = useDisconnect();
 
-  return async (connectorId: 'injected' | 'walletConnect' | 'coinbaseWallet' | 'safe') => {
-    const connector = connectors?.find?.((c) => c.id === connectorId) as Connector | undefined;
-    if (!connector) {
-      console.error(`Connector with id "${connectorId}" not found.`);
-      return;
-    }
+  return async (id: string) => {
+    const connector = connectors?.find?.((c) => c.id === id) as Connector | undefined;
+    if (!connector) throw new Error("Connector not found");
 
     try {
       await connectAsync({ connector });
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (isWcSessionError(msg)) {
-        console.warn("WalletConnect session error detected, clearing stale data and disconnecting.");
-        try {
-          // Disconnect to clean up internal wagmi state
-          await disconnectAsync({ connector });
-        } catch (disconnectError) {
-          console.error("Failed to disconnect after session error:", disconnectError);
-        }
-        // Manually clear localStorage as a fallback
+        try { await disconnectAsync(); } catch {}
         clearWcKeys();
-        // You can optionally show a toast message here to the user
-        // toast.info("Connection expired. Please try again.");
+        toast.error("WalletConnect session expired. Please try again.");
         return;
       }
-      // Re-throw other errors so they can be handled elsewhere if needed
       throw e;
     }
   };

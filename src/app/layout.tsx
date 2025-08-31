@@ -5,11 +5,14 @@ import { Inter } from "next/font/google";
 import "@/styles/globals.css";
 
 import { ThemeProvider } from "@/providers/ThemeProvider";
-import { ClientSideWeb3Provider } from "@/providers/client-side-web3-provider";
+import { Web3Provider } from "@/providers/Web3Provider";
 import Navbar from "@/components/layout/Navbar";
-import { BottomNavbar } from "@/components/layout/BottomNavbar"; // Import the new component
+import { BottomNavbar } from "@/components/layout/BottomNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "react-hot-toast";
+import ClientOnly from "@/components/layout/ClientOnly";
+import TxWatcher from "@/components/notifications/TxWatcher";
+import { SafeProvider } from "@/providers/SafeProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,25 +34,32 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Needed for Safe App detection */}
         <link rel="manifest" href="/manifest.json" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body
         className={`${inter.variable} bg-background text-foreground font-sans antialiased`}
       >
         <ThemeProvider>
-          <ClientSideWeb3Provider>
-            <div className="flex min-h-screen flex-col">
-              <Navbar />
-              {/* Add bottom padding to account for the new BottomNavbar on mobile */}
-              <main className="flex-grow pt-22 pb-24 md:pt-18 lg:pb-0">
-                <div className="mx-auto w-full max-w-7xl px-4">{children}</div>
-              </main>
-              <Footer />
-              <BottomNavbar /> {/* Render the new component here */}
-            </div>
-            <Toaster position="bottom-right" containerClassName="toast-container" />
-          </ClientSideWeb3Provider>
+          <ClientOnly>
+            <Web3Provider>
+              <SafeProvider>
+                <TxWatcher />
+                <div className="flex min-h-screen flex-col">
+                  <Navbar />
+                  <main id="main" className="flex-grow pt-22 pb-24 md:pt-18 lg:pb-0">
+                    <div className="mx-auto w-full max-w-7xl px-4">{children}</div>
+                  </main>
+                  <Footer />
+                  <BottomNavbar />
+                </div>
+                <Toaster
+                  position="bottom-right"
+                  containerClassName="toast-container"
+                />
+              </SafeProvider>
+            </Web3Provider>
+          </ClientOnly>
         </ThemeProvider>
       </body>
     </html>

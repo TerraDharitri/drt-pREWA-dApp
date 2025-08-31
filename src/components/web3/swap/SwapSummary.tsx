@@ -2,213 +2,131 @@
 "use client";
 
 import React from "react";
-import { useAccount, usePublicClient } from "wagmi";
-import type { Address, Hex } from "viem";
-import { formatUnits, getAddress } from "viem";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Spinner } from "@/components/ui/Spinner";
+import { useSwapHistory, type SwapRow } from "@/hooks/useSwapHistory";
 
-/** TODO: put your real pair address(es) here */
-const PAIR_ADDRESSES: Address[] = [
-  // "0xYourPairAddress" as Address,
-];
-
-/** Set proper decimals for your tokens */
-const TOKEN_DECIMALS = 18; // pREWA
-const QUOTE_DECIMALS = 18; // BNB/USDT (change to 6 if your USDT is 6)
-
-const PAIR_ABI = [
-  {
-    type: "event",
-    name: "Swap",
-    inputs: [
-      { indexed: true, name: "sender", type: "address" },
-      { indexed: false, name: "amount0In", type: "uint256" },
-      { indexed: false, name: "amount1In", type: "uint256" },
-      { indexed: false, name: "amount0Out", type: "uint256" },
-      { indexed: false, name: "amount1Out", type: "uint256" },
-      { indexed: true, name: "to", type: "address" },
-    ],
-    anonymous: false,
-  },
-] as const;
-
-const narrowChainId = (id?: number) => (id === 56 ? 56 : id === 97 ? 97 : undefined);
-
-type SwapRow = {
-  hash: Hex;
-  blockNumber: bigint;
-  pair: Address;
-  trader: Address;
-  tokenDelta: bigint; // +out -in (heuristic)
-  quoteDelta: bigint; // +out -in
-  direction: "BUY" | "SELL";
-  timestamp?: number;
-};
+function explorerBase(chainId?: number) {
+  switch (chainId) {
+    case 97:
+      return "https://testnet.bscscan.com";
+    case 56:
+      return "https://bscscan.com";
+    default:
+      return "";
+  }
+}
 
 export function SwapSummary() {
-  const { chainId } = useAccount();
-  const client = usePublicClient({ chainId: narrowChainId(chainId) });
+  const [addr, setAddr] = React.useState<string>("");
+  const {
+    data: swaps = [],
+    isLoading,
+    pair,
+    chainId,
+    debug,
+  } = useSwapHistory(addr as any);
 
-  const [rows, setRows] = React.useState<SwapRow[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const windowHrs = 24;
-
-  const load = React.useCallback(async () => {
-    if (!client || PAIR_ADDRESSES.length === 0) return;
-    setLoading(true);
-    setErr(null);
-    try {
-      const latest = await client.getBlockNumber();
-      const lookback = 28_800n; // ~24h on BSC
-      const fromBlock = latest > lookback ? latest - lookback : 1n;
-
-      const gathered: SwapRow[] = [];
-      for (const pair of PAIR_ADDRESSES) {
-        const logs = await client.getLogs({
-          address: pair,
-          event: { ...(PAIR_ABI[0] as any), type: "event" },
-          fromBlock,
-          toBlock: latest,
-        });
-
-        for (const lg of logs) {
-          const a = (lg as any).args as {
-            sender: Address;
-            amount0In: bigint;
-            amount1In: bigint;
-            amount0Out: bigint;
-            amount1Out: bigint;
-            to: Address;
-          };
-
-          // Heuristic (V2-style): treat token as token0, quote as token1.
-          const tokenDelta = a.amount0Out - a.amount0In;
-          const quoteDelta = a.amount1Out - a.amount1In;
-          const direction: "BUY" | "SELL" = tokenDelta > 0n ? "BUY" : "SELL";
-
-          gathered.push({
-            hash: lg.transactionHash as Hex,
-            blockNumber: lg.blockNumber!,
-            pair: getAddress(pair),
-            trader: a.sender,
-            tokenDelta,
-            quoteDelta,
-            direction,
-          });
-        }
-      }
-
-      // attach timestamps for recent cutoff
-      const blockMap = new Map<bigint, number>();
-      const uniques = [...new Set(gathered.map((r) => r.blockNumber))];
-      for (const bn of uniques) {
-        try {
-          const b = await client.getBlock({ blockNumber: bn });
-          blockMap.set(bn, Number(b.timestamp));
-        } catch {}
-      }
-
-      const cutoff = Math.floor(Date.now() / 1000) - windowHrs * 3600;
-      const final = gathered
-        .map((r) => ({ ...r, timestamp: blockMap.get(r.blockNumber) }))
-        .filter((r) => !r.timestamp || r.timestamp >= cutoff)
-        .sort((a, b) => Number(b.blockNumber - a.blockNumber));
-
-      setRows(final);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to load swaps");
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
-
-  React.useEffect(() => {
-    load();
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
-  }, [load]);
-
-  const totalSwaps = rows.length;
-  const totalToken = rows.reduce((acc, r) => acc + (r.tokenDelta >= 0n ? r.tokenDelta : -r.tokenDelta), 0n);
-  const totalQuote = rows.reduce((acc, r) => acc + (r.quoteDelta >= 0n ? r.quoteDelta : -r.quoteDelta), 0n);
-  const uniqueTraders = new Set(rows.map((r) => r.trader.toLowerCase())).size;
+  const base = explorerBase(chainId);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Swap Summary (Last {windowHrs}h)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm"><Spinner /> Loading…</div>
-        ) : err ? (
-          <div className="text-sm text-red-500">{err}</div>
-        ) : rows.length === 0 ? (
-          <div className="text-sm text-gray-500">No swaps found.</div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <div className="rounded border p-3">
-                <div className="opacity-60">Swaps</div>
-                <div className="text-lg font-semibold">{totalSwaps}</div>
-              </div>
-              <div className="rounded border p-3">
-                <div className="opacity-60">Volume (pREWA)</div>
-                <div className="text-lg font-semibold">
-                  {formatUnits(totalToken, TOKEN_DECIMALS)}
-                </div>
-              </div>
-              <div className="rounded border p-3">
-                <div className="opacity-60">Volume (Quote)</div>
-                <div className="text-lg font-semibold">
-                  {formatUnits(totalQuote, QUOTE_DECIMALS)}
-                </div>
-              </div>
-              <div className="rounded border p-3">
-                <div className="opacity-60">Traders</div>
-                <div className="text-lg font-semibold">{uniqueTraders}</div>
-              </div>
-            </div>
+    <div className="rounded-xl border border-greyscale-100 dark:border-dark-border">
+      <div className="flex items-center justify-between p-3 md:p-4 border-b border-greyscale-100 dark:border-dark-border">
+        <div className="font-medium">Recent Swaps (30d)</div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-greyscale-500">Pair:</span>
+          <input
+            value={addr}
+            onChange={(e) => setAddr(e.target.value)}
+            placeholder="Override pair 0x... (optional)"
+            className="w-[320px] rounded-md border px-2 py-1 text-xs bg-transparent"
+          />
+        </div>
+      </div>
 
-            <div className="rounded border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="text-left px-3 py-2">Block</th>
-                    <th className="text-left px-3 py-2">Direction</th>
-                    <th className="text-left px-3 py-2">pREWA Δ</th>
-                    <th className="text-left px-3 py-2">Quote Δ</th>
-                    <th className="text-left px-3 py-2">Trader</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(0, 10).map((r) => (
-                    <tr key={`${r.hash}-${r.blockNumber.toString()}`} className="border-t">
-                      <td className="px-3 py-2">{r.blockNumber.toString()}</td>
-                      <td className="px-3 py-2">
-                        <span className={r.direction === "BUY" ? "text-emerald-600" : "text-rose-600"}>
-                          {r.direction}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        {formatUnits(r.tokenDelta >= 0n ? r.tokenDelta : -r.tokenDelta, TOKEN_DECIMALS)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {formatUnits(r.quoteDelta >= 0n ? r.quoteDelta : -r.quoteDelta, QUOTE_DECIMALS)}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {r.trader.slice(0, 6)}…{r.trader.slice(-4)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+      {/* tiny diagnostics row */}
+      <div className="px-3 py-2 text-[11px] text-greyscale-500 flex flex-wrap gap-4">
+        <span>
+          chainId: <b>{chainId ?? "—"}</b>
+        </span>
+        <span>
+          pair: <b>{pair ?? "—"}</b>
+        </span>
+        {debug?.fromBlock && (
+          <span>
+            from: <b>{debug.fromBlock.toString()}</b>
+          </span>
         )}
-      </CardContent>
-    </Card>
+        {debug?.latestBlock && (
+          <span>
+            latest: <b>{debug.latestBlock.toString()}</b>
+          </span>
+        )}
+        {typeof debug?.logsFetched === "number" && (
+          <span>
+            logs: <b>{debug.logsFetched}</b>
+          </span>
+        )}
+        {debug?.stepsTried && (
+          <span>
+            spans: <b>{debug.stepsTried}</b>
+          </span>
+        )}
+        {debug?.reason && (
+          <span>
+            note: <b>{debug.reason}</b>
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="px-2 py-8 text-center text-sm">Loading swaps…</div>
+      ) : !(swaps as SwapRow[]).length ? (
+        <div className="px-2 py-8 text-center text-sm text-greyscale-400">
+          No swaps found in the recent window.
+        </div>
+      ) : (
+        <div className="max-h-[420px] overflow-y-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-greyscale-100 bg-greyscale-50/50 dark:border-dark-border dark:bg-dark-surface sticky top-0">
+              <tr>
+                <th className="px-3 py-2 whitespace-nowrap">Block</th>
+                <th className="px-3 py-2 whitespace-nowrap">Tx</th>
+                <th className="px-3 py-2 whitespace-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(swaps as SwapRow[]).map((s: SwapRow) => (
+                <tr
+                  key={`${s.hash}-${s.blockNumber}`}
+                  className="border-b last:border-b-0 border-greyscale-100/60 dark:border-dark-border/60"
+                >
+                  <td className="px-3 py-2">{s.blockNumber.toString()}</td>
+                  <td className="px-3 py-2">
+                    {base ? (
+                      <a
+                        className="underline"
+                        href={`${base}/tx/${s.hash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {s.hash.slice(0, 8)}…{s.hash.slice(-6)}
+                      </a>
+                    ) : (
+                      <span>{s.hash}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {`Swap ${Number(s.amountIn).toFixed(4)} ${s.tokenIn} for ${Number(
+                      s.amountOut
+                    ).toFixed(4)} ${s.tokenOut}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
+
+export default SwapSummary;

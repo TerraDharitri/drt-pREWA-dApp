@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { NetworkSwitcher } from "../web3/NetworkSwitcher";
 import { ProtocolStats } from "../web3/ProtocolStats";
 import { useAccount } from "wagmi";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type NavbarProps = {
   className?: string;
@@ -22,7 +23,7 @@ const navigationItems = [
   { id: 7, title: "LP Staking", url: "/lp-staking" },
   { id: 4, title: "Vesting", url: "/vesting" },
   { id: 5, title: "Dashboard", url: "/dashboard" },
-  { id: 6, title: "Donate", url: "/donate" },
+  { id: 6, title: "Donate", url: "/donate" }, // enable once donation contracts deployed
 ];
 
 function useIsSafeIframe() {
@@ -93,6 +94,7 @@ const Navbar = ({ className }: NavbarProps) => {
 
         {/* Right-side items */}
         <div className="flex items-center space-x-2 sm:space-x-4">
+            
             <div className="hidden md:flex">
                 <ProtocolStats />
             </div>
@@ -106,6 +108,10 @@ const Navbar = ({ className }: NavbarProps) => {
               {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Safe App"}
             </span>
           )}
+           {/* NEW: the bell */}
+          <div className="hidden sm:flex">
+            <NotificationBell />
+          </div>
           <div className="hidden sm:flex">
              <ThemeToggle />
           </div>
