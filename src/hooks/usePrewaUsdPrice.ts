@@ -5,15 +5,15 @@ import { useAccount, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { TOKEN_LISTS } from "@/constants/tokens";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
+import { safeFind } from "@/utils/safe";
 
 export function usePrewaUsdPrice() {
   const { chainId } = useAccount();
   const tokens = TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [];
-  const usdt = tokens.find((t) => t.symbol === "USDT");
-  const prewaAddr =
-    pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken;
-  const liquidityManager =
-    pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager;
+  const usdt  = safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "USDT");
+  const prewa = safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "pREWA");
+  const prewaAddr = pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken;
+  const liquidityManager = pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LiquidityManager;
 
   const enabled = !!chainId && !!usdt && !!prewaAddr && !!liquidityManager;
 
@@ -28,6 +28,7 @@ export function usePrewaUsdPrice() {
   if (!enabled || isLoading || !data) return { priceUsd: undefined as number | undefined };
 
   const [, , , reserve0, reserve1, pREWAIsToken0] = data as any;
+  
 
   const prewaDecimals = (tokens.find((t) => t.symbol === "pREWA")?.decimals ?? 18) as number;
   const usdtDecimals = (usdt?.decimals ?? 18) as number;

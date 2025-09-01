@@ -12,6 +12,8 @@ import { TOKEN_LIST_TESTNET } from "@/constants/tokens";
 import { useReadContracts } from "wagmi";
 import { pREWAAbis } from "@/constants";
 import { Address, isAddressEqual } from "viem";
+import { safeFind, toArray } from "@/utils/safe";
+
 
 interface LPStakingPositionRowProps {
   position: LPStakingPositionDetails;
@@ -22,11 +24,12 @@ const BPS_MAX = 10000n;
 const getPoolName = (token0: Address | undefined, token1: Address | undefined) => {
     if (!token0 || !token1) return 'Loading Pool...';
 
-    const pREWA = TOKEN_LIST_TESTNET.find(t => t.symbol === 'pREWA');
+    const pREWA = safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET, (t) => t?.symbol === "pREWA");
     if (!pREWA) return 'Configuration Error';
 
     const otherTokenAddr = isAddressEqual(token0, pREWA.address) ? token1 : token0;
-    const otherTokenInfo = TOKEN_LIST_TESTNET.find(t => isAddressEqual(t.address, otherTokenAddr));
+    const otherTokenInfo = safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET, (t) => isAddressEqual(t?.address!, otherTokenAddr!));
+
 
     return otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(otherTokenAddr)}`;
 };

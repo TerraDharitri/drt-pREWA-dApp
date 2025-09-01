@@ -11,6 +11,8 @@ import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { useReadContracts, useAccount } from "wagmi";
 import { isAddressEqual, Address } from "viem";
 import { Spinner } from "@/components/ui/Spinner";
+import { safeFind, toArray } from "@/utils/safe";
+
 
 interface LiquidityPositionRowProps {
   position: LiquidityPosition;
@@ -39,7 +41,8 @@ export function LiquidityPositionRow({ position }: LiquidityPositionRowProps) {
 
   const [token0AddressResult, reservesResult, lpTotalSupplyResult] = pairData || [];
 
-  const otherTokenInfo = TOKEN_LIST_TESTNET.find(token => isAddressEqual(token.address, position.otherTokenAddress));
+  const otherTokenInfo = safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET,(token) => isAddressEqual(token?.address!, position?.otherTokenAddress!));
+
   const poolName = otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(position.otherTokenAddress)}`;
 
   let tokenABalance = 0n;
@@ -65,7 +68,8 @@ export function LiquidityPositionRow({ position }: LiquidityPositionRowProps) {
       }
   }
   
-  const tokenADecimals = TOKEN_LIST_TESTNET.find(t => t.symbol === 'pREWA')?.decimals ?? 18;
+  const tokenADecimals = safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET, (t) => t?.symbol === "pREWA")?.decimals ?? 18;
+
   const tokenBDecimals = otherTokenInfo?.decimals ?? 18;
 
   return (

@@ -7,6 +7,7 @@ import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { TOKEN_LIST_TESTNET } from "@/constants/tokens";
 import { Abi, Address } from "viem";
 import { useQuery } from "@tanstack/react-query";
+import { safeFind } from "@/utils/safe";
 
 export interface LiquidityPosition {
     id: string;
@@ -39,9 +40,10 @@ export const useReadLiquidityPositions = () => {
             }
 
             const supportedOtherTokens: Address[] = [
-                TOKEN_LIST_TESTNET.find(t => t.symbol === 'BNB')?.address,
-                TOKEN_LIST_TESTNET.find(t => t.symbol === 'USDT')?.address,
+                safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET, (t) => t?.symbol === "BNB")?.address,
+                safeFind<typeof TOKEN_LIST_TESTNET[number]>(TOKEN_LIST_TESTNET, (t) => t?.symbol === "USDT")?.address,
             ].filter((t): t is Address => !!t);
+
 
             if (supportedOtherTokens.length === 0) return [];
 

@@ -10,6 +10,7 @@ import { useProtocolStats } from "@/hooks/useProtocolStats";
 import { TOKEN_LISTS } from "@/constants/tokens";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
+import { safeFind } from "@/utils/safe";
 
 interface UserVestingSummaryProps {
   isAdmin: boolean;
@@ -28,7 +29,7 @@ export function UserVestingSummary({ isAdmin = false }: UserVestingSummaryProps)
   // pREWA decimals for current chain (fallback 18)
   const prewaDecimals = React.useMemo(() => {
     const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
-    return tokens.find((t) => t.symbol === "pREWA")?.decimals ?? 18;
+    return safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "pREWA")?.decimals ?? 18;
   }, [chainId]);
 
   // USD chip value for the list being displayed: SUM(total - released) * price

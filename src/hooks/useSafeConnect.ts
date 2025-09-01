@@ -3,6 +3,9 @@
 
 import { useConnect, useDisconnect, Connector } from "wagmi";
 import toast from "react-hot-toast";
+import { safeFind, toArray } from "@/utils/safe";
+
+
 
 const isWcSessionError = (msg: string) =>
   /(proposal expired|no matching key|session topic doesn't exist)/i.test(msg);
@@ -20,7 +23,7 @@ export function useSafeConnect() {
   const { disconnectAsync } = useDisconnect();
 
   return async (id: string) => {
-    const connector = connectors?.find?.((c) => c.id === id) as Connector | undefined;
+    const connector = safeFind<Connector>(connectors, (c) => (c as any)?.id === id) as Connector | undefined;
     if (!connector) throw new Error("Connector not found");
 
     try {

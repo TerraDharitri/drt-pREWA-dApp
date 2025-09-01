@@ -13,6 +13,8 @@ import { parseUnits, formatUnits, Address, isAddressEqual } from 'viem';
 import { LP_TOKEN_LISTS, TOKEN_LISTS } from '@/constants/tokens';
 import { isValidNumberInput } from '@/lib/utils';
 import { formatAddress } from '@/lib/web3-utils';
+import { safeFind, toArray } from "@/utils/safe";
+
 
 interface LPStakingDashboardProps {
   selectedTierId: number;
@@ -71,7 +73,8 @@ export function LPStakingDashboard({ selectedTierId }: LPStakingDashboardProps) 
   
   const getPoolName = (lpAddress: Address) => {
       const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
-      const lpInfo = stakeablePools.find(p => isAddressEqual(p.address, lpAddress));
+      const lpInfo = safeFind<typeof stakeablePools[number]>(stakeablePools, (p) => isAddressEqual(p?.address!, lpAddress!));
+
       return lpInfo ? lpInfo.name : `LP Token ${formatAddress(lpAddress)}`;
   }
 

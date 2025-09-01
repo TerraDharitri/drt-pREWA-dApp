@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { safeFind, toArray } from "@/utils/safe";
 import {
   decodeEventLog,
   encodeAbiParameters,
@@ -95,8 +96,8 @@ async function getAssetPriceAtTime(symbol: string, chainId: number | undefined, 
 
     if (normalizedSymbol === 'PREWA') {
         const tokens = TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] || [];
-        const usdt = tokens.find((t) => t.symbol === "USDT");
-        const prewa = tokens.find((t) => t.symbol === "pREWA");
+        const usdt = safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "USDT");
+        const prewa = safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "pREWA");
         const liquidityManager = pREWAContracts[chainId as keyof typeof pREWAContracts]?.LiquidityManager;
 
         if (usdt && prewa && liquidityManager) {
@@ -209,13 +210,15 @@ export function useDonate() {
         const donationHash = keccak256(encodeAbiParameters([{ type: "uint256" }, { type: "address" }, { type: "address" }, { type: "uint256" }, { type: "uint256" }], [BigInt(chainId), donor as Address, token, amount, nonce])) as Hex;
 
         let txHash: Hex;
-        const donateTokenFn = (DonationAbi as ReadonlyArray<any>).find((x) => x?.type === "function" && x?.name === "donateToken") as AbiFunction | undefined;
+        const donateTokenFn = safeFind<any>(toArray(DonationAbi), (x) => x?.type === "function" && x?.name === "donateToken" ) as AbiFunction | undefined;
+
 
         if (donateTokenFn) {
             const args = buildDonateTokenArgs(donateTokenFn, donationHash, token, amount);
             txHash = await writeContractAsync({ address: donationAddress, abi: DonationAbi as any, functionName: "donateToken" as any, args: args as any });
         } else {
-            const donateErc20Fn = (DonationAbi as ReadonlyArray<any>).find((x) => x?.type === "function" && x?.name === "donateERC20") as AbiFunction | undefined;
+            const donateErc20Fn = safeFind<any>(toArray(DonationAbi), (x) => x?.type === "function" && x?.name === "donateERC20") as AbiFunction | undefined;
+
             if (!donateErc20Fn) throw new Error("Neither donateToken nor donateERC20 exists in the provided ABI.");
             const ins = donateErc20Fn.inputs?.map(i => i.type) ?? [];
             let args: readonly unknown[];

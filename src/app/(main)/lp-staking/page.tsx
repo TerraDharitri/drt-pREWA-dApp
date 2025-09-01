@@ -13,6 +13,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { TOKEN_LISTS } from "@/constants/tokens";
 import { Address } from "viem";
+import { safeFind, toArray } from "@/utils/safe";
+
 
 export default function LPStakingPage() {
   const { isConnected, chainId } = useAccount();
@@ -21,8 +23,8 @@ export default function LPStakingPage() {
 
   // FIX: Fetch the Base APR for the primary pREWA/USDT pool
   const contractAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.LPStaking : undefined;
-  const pREWA = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]?.find(t => t.symbol === 'pREWA'), [chainId]);
-  const USDT = useMemo(() => TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS]?.find(t => t.symbol === 'USDT'), [chainId]);
+  const pREWA = useMemo( () => safeFind(TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS], (t: any) => t?.symbol === "pREWA"), [chainId]);
+  const USDT = useMemo( () => safeFind(TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS], (t: any) => t?.symbol === "USDT"), [chainId]);
   const routerAddress = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.PancakeRouter : undefined;
 
   const { data: factoryAddress } = useReadContract({

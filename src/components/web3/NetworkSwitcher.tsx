@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount, useSwitchChain } from "wagmi";
+import { safeFind, toArray } from "@/utils/safe";
 
 export function NetworkSwitcher() {
   const { chain } = useAccount();
@@ -9,7 +10,7 @@ export function NetworkSwitcher() {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = Number(e.target.value);
     // Narrow to one of our configured chains (e.g., 56 | 97)
-    const target = chains.find((c) => c.id === selected);
+    const target = safeFind<typeof chains[number]>(chains, (c) => c?.id === selected);
     if (target) {
       // target.id is typed as typeof chains[number]["id"] (56 | 97), so this satisfies the type.
       switchChain?.({ chainId: target.id });

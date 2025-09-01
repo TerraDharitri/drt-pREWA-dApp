@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { TOKEN_LISTS, Token } from "@/constants/tokens";
+import { safeFind } from "@/utils/safe";
 
 export type Field = 'from' | 'to';
 
@@ -23,8 +24,10 @@ export const useSwapState = () => {
 
   useEffect(() => {
     if (TOKENS.length > 0 && (!fromToken || !toToken)) {
-      setFromToken(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
-      setToToken(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
+      setFromToken(safeFind<typeof TOKENS[number]>(TOKENS, (t) => t?.symbol === "USDT") || TOKENS[0]);
+      setToToken(safeFind<typeof TOKENS[number]>(TOKENS, (t) => t?.symbol === "pREWA") || TOKENS[1] || TOKENS[0]
+);
+
       setAmounts({ from: '', to: '' });
     }
   }, [chainId, TOKENS, fromToken, toToken]);

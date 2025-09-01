@@ -8,6 +8,8 @@ import { pREWAContracts } from "@/contracts/addresses"; // FIX: Added missing im
 import { Spinner } from "@/components/ui/Spinner";
 import { type DonationToken, getDonationTokensForChain } from "@/contracts/donationTokens";
 import { zeroAddress } from "viem";
+import { safeFind, toArray } from "@/utils/safe";
+
 
 function explorerBase(chainId?: number) {
   switch (chainId) {
@@ -98,7 +100,8 @@ export function DonateSummary() {
 
   const tokenMeta = (addr?: Address | null) => {
     if (!addr || addr === zeroAddress) return { symbol: "BNB", decimals: 18 };
-    const known = tokens.find((t: DonationToken) => t.address?.toLowerCase() === addr.toLowerCase());
+    const known = safeFind<DonationToken>(tokens, (t) => t?.address?.toLowerCase() === (addr?.toLowerCase() ?? ""));
+
     return known ? { symbol: known.symbol, decimals: known.decimals ?? 18 } : { symbol: "TOKEN", decimals: 18 };
   };
 

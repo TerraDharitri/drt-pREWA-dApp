@@ -5,6 +5,7 @@ import { useAccount, useBalance, useReadContract } from "wagmi";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { TOKEN_LISTS, Token } from "@/constants/tokens";
 import { Address, formatUnits, parseUnits } from "viem";
+import { safeFind } from "@/utils/safe";
 
 export const useLiquidityState = () => {
   const { address: accountAddress, chainId, isConnected } = useAccount();
@@ -21,8 +22,10 @@ export const useLiquidityState = () => {
 
   useEffect(() => {
     if (TOKENS.length > 0 && (!tokenA || !tokenB)) {
-      setTokenA(TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0]);
-      setTokenB(TOKENS.find(t => t.symbol === 'pREWA') || TOKENS[1]);
+      setTokenA(safeFind<typeof TOKENS[number]>(TOKENS, (t) => t?.symbol === "USDT") || TOKENS[0]
+);
+      setTokenB(safeFind<typeof TOKENS[number]>(TOKENS, (t) => t?.symbol === "pREWA") || TOKENS[1] || TOKENS[0]
+);
       setAmountA("");
       setAmountB("");
     }

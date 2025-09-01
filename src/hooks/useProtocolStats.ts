@@ -7,7 +7,7 @@ import { useAccount, useReadContract } from "wagmi";
 import { pREWAAddresses, pREWAAbis } from "@/constants";
 import { TOKEN_LISTS } from "@/constants/tokens";
 import { formatUnits, zeroAddress, isAddressEqual, Address } from "viem";
-
+import { safeFind } from "@/utils/safe";
 // Define the hook's return type for clarity and type safety
 type ProtocolStatsReturn = {
   isLoading: boolean;
@@ -30,8 +30,9 @@ export function useProtocolStats(): ProtocolStatsReturn {
   const addresses = chainId ? pREWAAddresses[chainId as keyof typeof pREWAAddresses] : undefined;
   const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
   
-  const pREWA = useMemo(() => tokens.find(t => t.symbol === 'pREWA'), [tokens]);
-  const USDT = useMemo(() => tokens.find(t => t.symbol === 'USDT'), [tokens]);
+  const pREWA = useMemo(() => safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "pREWA"), [tokens]);
+  const USDT = useMemo(() => safeFind<typeof tokens[number]>(tokens, (t) => t?.symbol === "USDT"),[tokens]);
+
   const routerAddress = addresses?.PancakeRouter;
 
   // 2. Get Factory address from Router

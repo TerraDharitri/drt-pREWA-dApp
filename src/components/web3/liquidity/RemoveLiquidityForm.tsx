@@ -14,6 +14,8 @@ import { parseUnits, formatUnits, isAddressEqual } from "viem";
 import { formatAddress } from "@/lib/web3-utils";
 import toast from "react-hot-toast";
 import { isValidNumberInput } from "@/lib/utils";
+import { safeFind, toArray } from "@/utils/safe";
+
 
 export function RemoveLiquidityForm() {
   const { address, chainId } = useAccount();
@@ -66,9 +68,11 @@ export function RemoveLiquidityForm() {
     }
 
     const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
-    const isBNBPair = tokens.find(
-      (t) => t.symbol === "BNB" && isAddressEqual(t.address, selectedLp.otherTokenAddress)
+      const isBNBPair = safeFind<typeof tokens[number]>(
+      tokens,
+      (t) => t?.symbol === "BNB" && isAddressEqual(t?.address!, selectedLp?.otherTokenAddress!)
     );
+
 
     const run = async () => {
       if (isBNBPair) await removeLiquidityBNB(lpAmount);
@@ -89,7 +93,8 @@ export function RemoveLiquidityForm() {
   const poolOptions = useMemo(() => {
     const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
     return availableLPs.map((lp) => {
-      const otherTokenInfo = tokens.find((t) => isAddressEqual(t.address, lp.otherTokenAddress));
+      const otherTokenInfo = safeFind<typeof tokens[number]>(tokens,  (t) => isAddressEqual(t?.address!, lp?.otherTokenAddress!));
+
       const name = otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(lp.otherTokenAddress)}`;
       return { ...lp, name };
     });
@@ -121,7 +126,7 @@ export function RemoveLiquidityForm() {
           <select
             value={selectedLp?.id || ""}
             onChange={(e) => {
-              const selected = poolOptions.find((p) => p.id === e.target.value);
+              const selected = safeFind<typeof poolOptions[number]>(poolOptions, (p) => p?.id === e.target.value);
               setSelectedLp(selected);
               setLpAmount("");
             }}
