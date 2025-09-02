@@ -10,7 +10,7 @@ import { UserLiquiditySummary } from "../liquidity/UserLiquiditySummary";
 import { UserStakingSummary } from "../staking/UserStakingSummary";
 import { UserLPStakingSummary } from "../lp-staking/UserLPStakingSummary";
 import { UserVestingSummary } from "../vesting/UserVestingSummary";
-import { SwapSummary } from "@/components/web3/swap/SwapSummary";
+import SwapSummary from "@/components/web3/swap/SwapSummary";
 import { DonateSummary } from "@/components/web3/donate/DonateSummary";
 
 type DashboardTab =

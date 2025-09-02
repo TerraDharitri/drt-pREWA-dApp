@@ -2,6 +2,8 @@
 
 import { useAccount, useSwitchChain } from "wagmi";
 import { safeFind, toArray } from "@/utils/safe";
+import type { Chain } from "viem";
+
 
 export function NetworkSwitcher() {
   const { chain } = useAccount();
@@ -26,11 +28,11 @@ export function NetworkSwitcher() {
         disabled={isPending}
         className="border rounded px-2 py-1 text-sm"
       >
-        {chains.map((c) => (
-          <option key={c.id} value={c.id} disabled={c.id === chain?.id}>
-            {c.name} {c.id === chain?.id ? "(current)" : ""}
-          </option>
-        ))}
+        {chains.map((c: Chain) => (
+    <option key={c.id} value={c.id} disabled={c.id === chain?.id}>
+      {c.name} {c.id === chain?.id ? "(current)" : ""}
+    </option>
+  ))}
       </select>
 
       {isPending && <span className="text-sm text-gray-500">Switching...</span>}

@@ -19,9 +19,19 @@ import { DonationAbi } from "@/contracts/abis/Donation";
 import { pREWAContracts } from "@/contracts/addresses";
 import { pREWAAbis } from "@/constants";
 import { renderSvgToPng } from "@/utils/certificate";
-import { TOKEN_LISTS } from "@/constants/tokens";
+import { TOKEN_LISTS, tokensForChain, TOKEN_LISTS_CANONICAL } from "@/constants/tokens";
+import type { Token } from "@/constants/tokens";
 import { useTokenApproval } from "@/hooks/useTokenApproval";
 import toast from "react-hot-toast";
+
+
+// --- Ensure full token lists are used here (augment legacy TOKEN_LISTS) ---
+try {
+  const full56 = (typeof tokensForChain === "function" ? tokensForChain(56 as any) : (TOKEN_LISTS_CANONICAL as any)?.[56]) as any;
+  const full97 = (typeof tokensForChain === "function" ? tokensForChain(97 as any) : (TOKEN_LISTS_CANONICAL as any)?.[97]) as any;
+  if (full56 && Array.isArray(full56)) (TOKEN_LISTS as any)[56] = full56;
+  if (full97 && Array.isArray(full97)) (TOKEN_LISTS as any)[97] = full97;
+} catch {}
 
 /* --- Certificate org metadata from .env --- */
 const ORG_LEGAL_NAME =
@@ -155,6 +165,22 @@ async function buildCertificateSvg(opts: { orgName: string; orgRegNo: string; or
 
 export type DonateResult = { txHash: Hex; tokenId: bigint | null; tokenUri: string | null; imageSvg: string | null; imagePngDataUrl: string | null; };
 
+
+
+// Public helper: list assets for the donate dropdown (BNB + ERC-20s)
+export function donationAssetsForChain(chainId: number): (Token & { native?: boolean })[] {
+  const erc20s = (TOKEN_LISTS as any)[chainId] || [];
+  const bnb: Token & { native?: boolean } = {
+    symbol: "BNB",
+    name: "BNB (native)",
+    // We never use this address for native sends; donateNative handles it.
+    address: "0x0000000000000000000000000000000000000000" as any,
+    decimals: 18,
+    logoURI: "/bnb.svg",
+    native: true,
+  };
+  return [bnb, ...erc20s];
+}
 export function useDonate() {
   const { address: donor } = useAccount();
   const chainId = useChainId();

@@ -43,18 +43,29 @@ export const useTxStore = create<TxStore>()(
   persist(
     (set, get) => ({
       txs: [],
-      addTx: (t) => set((s) => ({ txs: [t, ...s.txs.filter((x) => x.hash !== t.hash)] })),
-      updateTx: (hash, patch) =>
+      addTx: (t: TxRecord) => set((s) => ({ 
+        txs: [t, ...s.txs.filter((x: TxRecord) => x.hash !== t.hash)] 
+      })),
+      updateTx: (hash: `0x${string}`, patch: Partial<TxRecord>) =>
         set((s) => ({
-          txs: s.txs.map((x) =>
+          txs: s.txs.map((x: TxRecord) =>
             x.hash === hash ? { ...x, ...patch, updatedAt: Date.now() } : x
           ),
         })),
-      markRead: (hash) =>
-        set((s) => ({ txs: s.txs.map((x) => (x.hash === hash ? { ...x, read: true } : x)) })),
-      markAllRead: () => set((s) => ({ txs: s.txs.map((x) => ({ ...x, read: true })) })),
+      markRead: (hash: `0x${string}`) =>
+        set((s) => ({ 
+          txs: s.txs.map((x: TxRecord) => 
+            x.hash === hash ? { ...x, read: true } : x
+          ) 
+        })),
+      markAllRead: () => set((s) => ({ 
+        txs: s.txs.map((x: TxRecord) => ({ ...x, read: true })) 
+      })),
       clear: () => set({ txs: [] }),
     }),
-    { name: "drt:txlog", storage: createJSONStorage(() => localStorage) }
+    { 
+      name: "drt:txlog", 
+      storage: createJSONStorage(() => localStorage) 
+    }
   )
 );

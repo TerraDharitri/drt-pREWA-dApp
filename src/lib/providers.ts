@@ -1,4 +1,4 @@
-// lib/providers.ts
+// src/lib/providers.ts
 import SafeAppsSDK from "@safe-global/safe-apps-sdk";
 import { SafeAppProvider } from "@safe-global/safe-apps-provider";
 import { BrowserProvider } from "ethers";

@@ -1,55 +1,54 @@
+// src/components/web3/donate/DonateSummary.tsx
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useChainId, useAccount } from "wagmi";
-import { formatUnits, type Address } from "viem";
-import { useDonationHistory, type DonationRow } from "@/hooks/useDonationHistory";
-import { pREWAContracts } from "@/contracts/addresses"; // FIX: Added missing import
-import { Spinner } from "@/components/ui/Spinner";
-import { type DonationToken, getDonationTokensForChain } from "@/contracts/donationTokens";
-import { zeroAddress } from "viem";
-import { safeFind, toArray } from "@/utils/safe";
+import type { Address } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 
+import { useDonationHistory } from "@/hooks/useDonationHistory";
+import { pREWAContracts } from "@/contracts/addresses";
+import { Spinner } from "@/components/ui/Spinner";
+import { getDonationTokensForChain, type DonationToken } from "@/contracts/donationTokens";
 
 function explorerBase(chainId?: number) {
   switch (chainId) {
-    case 97:
-      return "https://testnet.bscscan.com";
-    case 56:
-      return "https://bscscan.com";
-    default:
-      return "";
+    case 97: return "https://testnet.bscscan.com";
+    case 56: return "https://bscscan.com";
+    default: return "https://bscscan.com";
   }
 }
 
+type RowLike = any;
+
 const DonationTable: React.FC<{
-  rows: DonationRow[];
+  rows: RowLike[];
   empty: string;
   isLoading: boolean;
   explorerUrl: string;
   contractAddress?: Address;
   tokenMeta: (addr?: Address | null) => { symbol: string; decimals: number };
-}> = ({ rows, empty, isLoading, explorerUrl, contractAddress, tokenMeta }) => {
+  visibleRows?: number;
+}> = ({ rows, empty, isLoading, explorerUrl, contractAddress, tokenMeta, visibleRows = 5 }) => {
   if (isLoading) {
     return (
       <div className="web3-card mt-2 px-4 py-8 text-center text-sm text-greyscale-400 flex items-center justify-center">
-        <Spinner className="mr-2" /> Loading...
+        <Spinner className="mr-2" /> Loading donations…
       </div>
     );
   }
-  if (!rows.length) {
-    return (
-      <div className="web3-card mt-2 px-4 py-8 text-center text-sm text-greyscale-400">
-        {empty}
-      </div>
-    );
+  if (!rows?.length) {
+    return <div className="web3-card mt-2 px-4 py-8 text-center text-sm text-greyscale-400">{empty}</div>;
   }
 
+  // Row height is approx 48px (h-12). Table body max height = visibleRows * 48.
+  const bodyHeight = visibleRows * 48;
+
   return (
-    <div className="web3-card mt-2 p-0 max-h-[480px] overflow-y-auto relative">
+    <div className="web3-card mt-2 p-0">
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 border-b border-greyscale-100 bg-greyscale-25 dark:border-dark-border dark:bg-dark-surface">
+        <table className="min-w-full text-sm">
+          <thead className="border-b border-greyscale-100 bg-greyscale-25 dark:border-dark-border dark:bg-dark-surface sticky top-0">
             <tr>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Date (UTC)</th>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Donor</th>
@@ -58,27 +57,38 @@ const DonationTable: React.FC<{
               <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Certificate</th>
             </tr>
           </thead>
+        </table>
+      </div>
+      <div className="overflow-y-auto" style={{ maxHeight: `${bodyHeight}px` }}>
+        <table className="min-w-full text-sm">
           <tbody>
-            {rows.map((r) => {
-              const { symbol, decimals } = tokenMeta(r.token);
-              const amt = Number(formatUnits(r.amount, decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 });
-              const date = new Date(r.timestamp * 1000).toISOString().slice(0, 16).replace("T", " ");
+            {rows.map((row: RowLike, i: number) => {
+              const tokenAddr: Address | null =
+                row?.token === zeroAddress ? null : (row?.token as Address | undefined) ?? null;
+              const { symbol, decimals } = tokenMeta(tokenAddr);
+              const ts = Number(row?.timestamp ?? 0) * 1000;
+              const tokenId = row?.tokenId ?? row?.nftId ?? row?.certificateId;
 
               return (
-                <tr key={r.verificationHash} className="border-t border-greyscale-100/60 dark:border-dark-border">
-                  <td className="px-4 py-3 whitespace-nowrap">{date}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{r.donor}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{symbol}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{amt}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <a
-                      className="text-primary-100 underline hover:no-underline dark:text-primary-300"
-                      href={`${explorerUrl}/token/${contractAddress}?a=${String(r.tokenId)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View #{String(r.tokenId)}
-                    </a>
+                <tr key={`${row.tx}-${i}`} className="border-t border-greyscale-100/60 dark:border-dark-border h-12">
+                  <td className="px-4 py-2 align-middle whitespace-nowrap">
+                    {isFinite(ts) && ts > 0 ? new Date(ts).toISOString().slice(0,16).replace('T',' ') : "-"}
+                  </td>
+                  <td className="px-4 py-2 align-middle font-mono text-xs">
+                    {row?.donor}
+                  </td>
+                  <td className="px-4 py-2 align-middle whitespace-nowrap">{symbol}</td>
+                  <td className="px-4 py-2 align-middle whitespace-nowrap">
+                    {formatUnits((row?.amount ?? 0n) as bigint, decimals)}
+                  </td>
+                  <td className="px-4 py-2 align-middle text-right">
+                    {tokenId != null ? (
+                      <a className="underline text-primary-100 dark:text-primary-300" href={`${explorerUrl}/token/${contractAddress}?a=${String(tokenId)}`} target="_blank" rel="noreferrer">
+                        View #{String(tokenId)}
+                      </a>
+                    ) : (
+                      <span className="text-greyscale-500">—</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -91,56 +101,60 @@ const DonationTable: React.FC<{
 };
 
 export function DonateSummary() {
-  const { address: account } = useAccount();
   const chainId = useChainId();
+  const { address } = useAccount();
+
   const { data: rows = [], isLoading } = useDonationHistory();
+  
+  const myDonations: RowLike[] = address ? rows.filter(r => r.donor.toLowerCase() === address.toLowerCase()) : [];
+  const allDonations: RowLike[] = rows;
+
   const base = explorerBase(chainId);
-  const contractAddress = chainId ? pREWAContracts[chainId as keyof typeof pREWAContracts]?.Donation : undefined;
-  const tokens = getDonationTokensForChain(chainId);
+  const contractAddress = (pREWAContracts as Record<number, { Donation?: Address }>)[chainId as number]?.Donation;
 
-  const tokenMeta = (addr?: Address | null) => {
-    if (!addr || addr === zeroAddress) return { symbol: "BNB", decimals: 18 };
-    const known = safeFind<DonationToken>(tokens, (t) => t?.address?.toLowerCase() === (addr?.toLowerCase() ?? ""));
-
-    return known ? { symbol: known.symbol, decimals: known.decimals ?? 18 } : { symbol: "TOKEN", decimals: 18 };
-  };
-
-  const allDonations = rows;
-  const yourDonations = account ? rows.filter(r => r.donor.toLowerCase() === account.toLowerCase()) : [];
+  const tokenMeta = useMemo(() => {
+    const list = getDonationTokensForChain(chainId as 56 | 97);
+    const map = new Map<string, { symbol: string; decimals: number }>();
+    for (const t of list) {
+      if(t.address) map.set(String(t.address).toLowerCase(), { symbol: t.symbol, decimals: t.decimals ?? 18 });
+    }
+    return (addr?: Address | null) => {
+      if (!addr || addr === zeroAddress) return { symbol: "BNB", decimals: 18 };
+      const key = String(addr).toLowerCase();
+      return map.get(key) || { symbol: "TOKEN", decimals: 18 };
+    };
+  }, [chainId]);
 
   return (
-    <div className="mx-auto mt-12 w-full max-w-7xl space-y-8">
+    // FIX: Changed grid to a single-column flex layout
+    <div className="flex flex-col space-y-8">
       <div>
-        <h4 className="text-lg font-semibold">Your Donations</h4>
+        <h3 className="text-lg font-semibold">Your Donations</h3>
         <DonationTable
-          rows={yourDonations}
+          rows={myDonations}
           isLoading={isLoading}
           explorerUrl={base}
           contractAddress={contractAddress}
           tokenMeta={tokenMeta}
-          empty={
-            contractAddress
-              ? "You haven't donated yet on this network."
-              : "Donation contract not configured for this network."
-          }
+          empty={address ? "You haven't donated yet on this network." : "Connect a wallet to see your donations."}
+          visibleRows={5}
         />
       </div>
 
       <div>
-        <h4 className="text-lg font-semibold">All Protocol Donations</h4>
+        <h3 className="text-lg font-semibold">All Protocol Donations</h3>
         <DonationTable
           rows={allDonations}
           isLoading={isLoading}
           explorerUrl={base}
           contractAddress={contractAddress}
           tokenMeta={tokenMeta}
-          empty={
-            contractAddress
-              ? "No protocol donations found yet."
-              : "Donation contract not configured for this network."
-          }
+          empty={contractAddress ? "No protocol donations found yet." : "Donation contract not configured for this network."}
+          visibleRows={5}
         />
       </div>
     </div>
   );
 }
+
+export default DonateSummary;

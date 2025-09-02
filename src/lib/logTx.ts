@@ -9,21 +9,21 @@ export type LogInput = {
   chainId: number;
   title: string;
   kind: TxKind;
+  /** accepted but not stored unless TxRow defines it */
   address?: `0x${string}`;
   meta?: Record<string, any>;
 };
 
 export function logTx(input: LogInput) {
   const id = `${input.chainId}:${input.hash}`;
-  useTxStore.getState().add({
+
+  useTxStore.getState().push({
     id,
     hash: input.hash,
     chainId: input.chainId,
     title: input.title,
     kind: input.kind,
-    address: input.address,
-    meta: input.meta,
-    ts: Date.now(),
-    status: "pending",
+    status: "pending",         
+    timestamp: Date.now(),
   });
 }

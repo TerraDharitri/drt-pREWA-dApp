@@ -2,11 +2,11 @@
 import { ethers } from "ethers";
 import type { Connector } from "wagmi";
 import { getConnections } from "wagmi/actions";
-import { config } from "@/config/wagmi";
+import { config as wagmiConfig } from "@/config/wagmi";
 
 /** Returns the active wagmi connector from the singleton config. */
 export function getActiveConnector(): Connector {
-  const connections = getConnections(config);
+  const connections = getConnections(wagmiConfig);
   if (!connections.length) {
     throw new Error("No active wallet connections (getConnections returned 0).");
   }
@@ -17,37 +17,31 @@ export function getActiveConnector(): Connector {
   return active.connector;
 }
 
-/** Get an EIP-1193 provider from the active connector. */
+/** EIP-1193 provider from the active connector */
 export async function getEip1193FromActiveConnector(): Promise<{
-  request: (args: { method: string; params?: any[] | object }) => Promise<any>;
+  request: (args: { method: string; params?: any }) => Promise<any>;
 }> {
   const connector = getActiveConnector();
-  const provider: any = await connector.getProvider();
-
-  if (!provider || typeof provider.request !== "function") {
-    const diag = {
-      connectorId: connector.id,
-      connectorName: connector.name,
-      hasProvider: !!provider,
-      providerKeys: provider ? Object.keys(provider) : [],
-      typeofRequest: typeof provider?.request,
-    };
-    throw new Error(
-      "Active connector did not yield an EIP-1193 provider with .request: " +
-        JSON.stringify(diag)
-    );
+  const provider = (await connector.getProvider()) as any;
+  if (!provider?.request) {
+    throw new Error("Connector returned a provider without .request()");
   }
   return provider;
 }
 
-/** (Optional) ethers signer if you ever need it elsewhere */
+/** (Optional) ethers v6 BrowserProvider if needed elsewhere */
+export async function getEthersProviderFromActiveConnector() {
+  const eip1193 = await getEip1193FromActiveConnector();
+  return new ethers.BrowserProvider(eip1193);
+}
+
+/** (Optional) ethers signer from the active connector */
 export async function getEthersSignerFromActiveConnector(
   preferredAddress?: `0x${string}`
 ) {
-  const eip1193 = await getEip1193FromActiveConnector();
-  const browserProvider = new ethers.BrowserProvider(eip1193);
-  if (preferredAddress) return browserProvider.getSigner(preferredAddress);
-  const accounts = (await eip1193.request({ method: "eth_accounts" })) as string[];
+  const provider = await getEthersProviderFromActiveConnector();
+  if (preferredAddress) return provider.getSigner(preferredAddress);
+  const accounts = (await provider.send("eth_accounts", [])) as string[];
   if (!accounts?.length) throw new Error("Provider returned no accounts (eth_accounts).");
-  return browserProvider.getSigner(accounts[0] as `0x${string}`);
+  return provider.getSigner(accounts[0] as `0x${string}`);
 }

@@ -8,6 +8,12 @@ const nextConfig = {
         hostname: "raw.githubusercontent.com",
         pathname: "/trustwallet/assets/master/blockchains/**",
       },
+      // FIX: Add a new pattern to whitelist images from assets.coingecko.com
+      {
+        protocol: "https",
+        hostname: "assets.coingecko.com",
+        pathname: "/coins/images/**",
+      },
     ],
   },
   async headers() {

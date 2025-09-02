@@ -7,79 +7,82 @@ import { useTxStore, selectAll } from "@/lib/txStore";
 import { useShallow } from "zustand/react/shallow";
 
 const shorten = (v: string) =>
-  v.length > 10 ? `${v.slice(0, 6)}…${v.slice(-4)}` : v;
+  v && v.length > 10 ? `${v.slice(0, 6)}…${v.slice(-4)}` : v;
 
 export default function NotificationBell() {
   const txs = useTxStore(useShallow(selectAll));
   const clear = useTxStore((s) => s.clear);
   const [open, setOpen] = useState(false);
-  const bellRef = useRef<HTMLDivElement>(null);
-
-  const hasPending = txs.some((t) => t.status === "pending");
+  const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
   }, []);
 
+  const pending = txs.filter((t) => t.status === "pending").length;
+
   return (
-    <div className="relative" ref={bellRef}>
+    <div className="relative" ref={ref}>
       <button
-        aria-label="Notifications"
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-full p-2 hover:bg-black/5 dark:hover:bg-white/10"
+        className="relative inline-flex items-center justify-center rounded-md p-2 hover:bg-greyscale-900"
       >
-        <Bell className="h-5 w-5" />
-        {hasPending && (
-          <span className="absolute right-1 top-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
+        <Bell className="w-5 h-5" />
+        {pending > 0 && (
+          <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary-500 px-1 text-[10px] leading-none text-white">
+            {pending}
+          </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-md border bg-white p-3 text-sm shadow-lg dark:border-dark-border dark:bg-dark-surface">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="font-semibold">Activity</div>
+        <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-greyscale-800 bg-greyscale-950 shadow-lg">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="text-sm font-semibold">Recent transactions</span>
             <button
-              className="text-xs text-gray-500 hover:underline"
+              className="text-xs text-greyscale-400 hover:text-greyscale-200"
               onClick={() => clear()}
             >
-              Clear All
+              Clear
             </button>
           </div>
 
           {txs.length === 0 ? (
-            <div className="py-6 text-center text-gray-500">No activity yet.</div>
+            <div className="px-3 py-6 text-center text-sm text-greyscale-400">
+              No transactions yet.
+            </div>
           ) : (
-            <ul className="max-h-96 space-y-2 overflow-y-auto">
-              {txs.map((t) => (
-                <li
-                  key={t.id}
-                  className="rounded border p-2 dark:border-dark-border"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{t.title}</span>
-                    <span
-                      className={
-                        t.status === "pending"
-                          ? "text-amber-600"
-                          : t.status === "success"
-                          ? "text-emerald-600"
-                          : "text-red-600"
-                      }
-                    >
-                      {t.status}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {shorten(t.hash)} · chain {t.chainId}
-                  </div>
-                </li>
-              ))}
+            <ul className="max-h-80 overflow-y-auto py-1">
+              {txs.map((t) => {
+                const title = t.title ?? t.label ?? t.kind.toUpperCase(); // ✅ safe fallback
+                return (
+                  <li key={t.id} className="px-3 py-2 hover:bg-greyscale-900">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{title}</span>
+                      <span
+                        className={
+                          t.status === "pending"
+                            ? "text-xs text-yellow-400"
+                            : t.status === "success"
+                            ? "text-xs text-green-400"
+                            : "text-xs text-red-400"
+                        }
+                      >
+                        {t.status}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {t.hash ? shorten(t.hash) : "—"} · chain {t.chainId ?? "—"}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -3,16 +3,13 @@
 
 import { useConnect, useDisconnect, Connector } from "wagmi";
 import toast from "react-hot-toast";
-import { safeFind, toArray } from "@/utils/safe";
 
-
-
-const isWcSessionError = (msg: string) =>
+const isWcSessionError = (msg: string): boolean =>
   /(proposal expired|no matching key|session topic doesn't exist)/i.test(msg);
 
-function clearWcKeys() {
+function clearWcKeys(): void {
   try {
-    Object.keys(localStorage).forEach((k) => {
+    Object.keys(localStorage).forEach((k: string) => {
       if (k.startsWith("wc@2")) localStorage.removeItem(k);
     });
   } catch {}
@@ -22,16 +19,17 @@ export function useSafeConnect() {
   const { connectAsync, connectors } = useConnect();
   const { disconnectAsync } = useDisconnect();
 
-  return async (id: string) => {
-    const connector = safeFind<Connector>(connectors, (c) => (c as any)?.id === id) as Connector | undefined;
-    if (!connector) throw new Error("Connector not found");
-
+  const connect = async (connector?: Connector) => {
     try {
-      await connectAsync({ connector });
+      const target = connector ?? connectors.find(Boolean);
+      if (!target) throw new Error("No connector available");
+      return await connectAsync({ connector: target });
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (isWcSessionError(msg)) {
-        try { await disconnectAsync(); } catch {}
+        try {
+          await disconnectAsync();
+        } catch {}
         clearWcKeys();
         toast.error("WalletConnect session expired. Please try again.");
         return;
@@ -39,4 +37,8 @@ export function useSafeConnect() {
       throw e;
     }
   };
+
+  return { connect, connectors, disconnectAsync };
 }
+
+export default useSafeConnect;
