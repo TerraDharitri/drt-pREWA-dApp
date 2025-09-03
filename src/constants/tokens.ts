@@ -86,11 +86,11 @@ export const LP_TOKEN_LISTS: { [chainId: number]: Token[] } = {
 // ---------------------------------------------------------------------------
 
 const ORDER = [
-  "USDT","USDC","DAI","ETH","BTC","LINK","AAVE","UNI","ADA","XRP","EGLD","DOT","DOGE","PREWA",
+  "USDT","USDC","DAI","ETH","BTCB","LINK","AAVE","UNI","ADA","XRP","EGLD","DOT","DOGE","PREWA",
 ] as const;
 
 const DECIMALS: Record<(typeof ORDER)[number], number> = {
-  USDC: 18, USDT: 18, PREWA: 18, DAI: 18, ETH: 18, BTC: 18, LINK: 18,
+  USDC: 18, USDT: 18, PREWA: 18, DAI: 18, ETH: 18, BTCB: 18, LINK: 18,
   DOGE: 8, ADA: 18, UNI: 18, XRP: 18, EGLD: 18, AAVE: 18, DOT: 18,
 };
 
@@ -100,7 +100,7 @@ const LOGO: Record<(typeof ORDER)[number], string> = {
   PREWA: "/logo.svg",
   DAI:  "https://assets.coingecko.com/coins/images/9956/small/4943.png",
   ETH:  "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
-  BTC:  "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
+  BTCB:  "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
   LINK: "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png",
   DOGE: "https://assets.coingecko.com/coins/images/5/small/dogecoin.png",
   ADA:  "https://assets.coingecko.com/coins/images/975/small/cardano.png",
@@ -119,7 +119,7 @@ function buildList(chainId: DharitriChainId): Token[] {
       symbol: s,
       name:
         s === "ETH" ? "Binance-Peg ETH" :
-        s === "BTC" ? "BTCB" :
+        s === "BTCB" ? "BTCB" :
         s === "PREWA" ? "Dharitri pREWA" : s,
       address: map[s as keyof typeof map] as Address,
       decimals: DECIMALS[s],

@@ -128,7 +128,7 @@ async function getAssetPriceAtTime(symbol: string, chainId: number | undefined, 
 
     if (["USDT", "USDC", "DAI"].includes(normalizedSymbol)) return 1.0;
 
-    const symbolToCoinGeckoId: Record<string, string> = { BNB: "binancecoin", TBNB: "binancecoin", ETH: "ethereum", WBTC: "wrapped-bitcoin", LINK: "chainlink", UNI: "uniswap", AAVE: "aave" };
+    const symbolToCoinGeckoId: Record<string, string> = { BNB: "binancecoin", TBNB: "binancecoin", ETH: "ethereum", BTCB: "wrapped-bitcoin", LINK: "chainlink", UNI: "uniswap", AAVE: "aave" };
     const coinId = symbolToCoinGeckoId[normalizedSymbol];
     if (!coinId) {
         console.warn(`Price not available for symbol: ${symbol}`);

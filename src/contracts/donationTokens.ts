@@ -23,10 +23,15 @@ export const DONATION_TOKENS_BY_CHAIN: Record<number, DonationToken[]> = {
     { symbol: "USDC",  address: process.env.NEXT_PUBLIC_USDC_97 as Address },
     { symbol: "DAI",   address: process.env.NEXT_PUBLIC_DAI_97 as Address },
     { symbol: "ETH",   address: process.env.NEXT_PUBLIC_ETH_97 as Address },
-    { symbol: "WBTC",  address: process.env.NEXT_PUBLIC_WBTC_97 as Address },
+    { symbol: "BTCB",  address: process.env.NEXT_PUBLIC_BTCB_97 as Address },
     { symbol: "LINK",  address: process.env.NEXT_PUBLIC_LINK_97 as Address },
     { symbol: "UNI",   address: process.env.NEXT_PUBLIC_UNI_97 as Address },
     { symbol: "AAVE",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
+    { symbol: "DOGE",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
+    { symbol: "ADA",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
+    { symbol: "XRP",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
+    { symbol: "EGLD",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
+    { symbol: "DOT",  address: process.env.NEXT_PUBLIC_AAVE_97 as Address },
   ]),
 
   // BSC Mainnet (56)
@@ -37,10 +42,15 @@ export const DONATION_TOKENS_BY_CHAIN: Record<number, DonationToken[]> = {
     { symbol: "USDC",  address: process.env.NEXT_PUBLIC_USDC_56 as Address },
     { symbol: "DAI",   address: process.env.NEXT_PUBLIC_DAI_56 as Address },
     { symbol: "ETH",   address: process.env.NEXT_PUBLIC_ETH_56 as Address },
-    { symbol: "WBTC",  address: process.env.NEXT_PUBLIC_WBTC_56 as Address },
+    { symbol: "BTCB",  address: process.env.NEXT_PUBLIC_BTCB_56 as Address },
     { symbol: "LINK",  address: process.env.NEXT_PUBLIC_LINK_56 as Address },
     { symbol: "UNI",   address: process.env.NEXT_PUBLIC_UNI_56 as Address },
     { symbol: "AAVE",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
+    { symbol: "DOGE",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
+    { symbol: "ADA",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
+    { symbol: "XRP",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
+    { symbol: "EGLD",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
+    { symbol: "DOT",  address: process.env.NEXT_PUBLIC_AAVE_56 as Address },
   ]),
 };
 

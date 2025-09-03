@@ -12,8 +12,7 @@ export const pREWAContracts = {
     EmergencyTimelockController: '0x52468d6a9abbf4e72bbf2603ceed882b5c3b9157' as Address,
     LiquidityManager: '0x5a36f36d7387acd2d8c7e8a35372f20cb6910d12' as Address,
     LPStaking: '0xc7055816c1c70785667cee051bc7d207e6ffb633' as Address,
-    DonationTracker: '0x0000000000000000000000000000000000000000' as Address,
-    Donation: '0xYOUR_MAINNET_DONATION_ADDRESS' as Address, // set when deployed
+    Donation: '0x99C5D7b71b30687A8754750129bA8570009276E9' as Address,
     OracleIntegration: '0xa6a0e83c6d5bef2a674c038d78657124a928dd01' as Address,
     pREWAToken: '0x828f07e624f227fde5906611461deab26dccc600' as Address,
     PriceGuard: '0x957b4b03c9e343f5818b2d0574f756d8efab9fcb' as Address,
@@ -50,7 +49,7 @@ export type ContractName = keyof typeof pREWAContracts[56];
 // ---------- Single source of truth for donation tokens ----------
 export type DharitriChainId = 56 | 97;
 export type TokenSymbol =
-  | "USDC" | "USDT" | "PREWA" | "DAI" | "ETH" | "BTC" | "LINK"
+  | "USDC" | "USDT" | "PREWA" | "DAI" | "ETH" | "BTCB" | "LINK"
   | "DOGE" | "ADA" | "UNI" | "XRP" | "EGLD" | "AAVE" | "DOT";
 
 export const TOKEN_ADDRESSES: Record<DharitriChainId, Record<TokenSymbol, Address>> = {
@@ -60,7 +59,7 @@ export const TOKEN_ADDRESSES: Record<DharitriChainId, Record<TokenSymbol, Addres
     PREWA:"0x0440b0893167f66e49a82eF6F3b4c2Aed7fe10Bf" as Address,
     DAI:  "0xEC5dCb5Dbf4B114c9d0F65BcCAb49EC54F6A0867" as Address,
     ETH:  "0xd66c6B4F0be8CE5b39D52E0Fd1344c389929B378" as Address,
-    BTC:  "0xE3fDB7552A766B76258ed7d282bFed7F552095F4" as Address,
+    BTCB:  "0x6ce8dA28E2f864420840cF74474eFf5fD80E65B8" as Address,
     LINK: "0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06" as Address,
     DOGE: "0xA3C7900feb72cD31Ff39796f361C5Df3c5F5CB8f" as Address,
     ADA:  "0x2D1E7bC0F96BB9C36b30dfd8f044Efe1DDD034Da" as Address,
@@ -76,7 +75,7 @@ export const TOKEN_ADDRESSES: Record<DharitriChainId, Record<TokenSymbol, Addres
     PREWA:"0x828f07e624f227fde5906611461deab26dccc600" as Address,
     DAI:  "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3" as Address,
     ETH:  "0x2170Ed0880ac9A755fd29B2688956BD959F933F8" as Address,
-    BTC:  "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c" as Address,
+    BTCB:  "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c" as Address,
     LINK: "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD" as Address,
     DOGE: "0xbA2aE424d960c26247Dd6c32edC70B295c744C43" as Address,
     ADA:  "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47" as Address,

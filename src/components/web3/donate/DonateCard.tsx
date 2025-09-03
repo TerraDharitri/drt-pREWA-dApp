@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Address, Hex } from "viem";
 import { erc20Abi, formatUnits } from "viem";
-import { useAccount, useChainId, usePublicClient } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useBalance } from "wagmi";
 import toast from "react-hot-toast";
 
 import { useDonate } from "@/hooks/useDonate";
@@ -186,6 +186,30 @@ export default function DonateCard() {
   const contractAddress = donationContract;
   const base = chainId === 56 ? "https://bscscan.com" : "https://testnet.bscscan.com";
 
+  // ---- Balance for selected donation asset (BNB/native or ERC-20) ----
+  const selectedToken = visibleTokens[tokenIndex];
+  const isNative = !selectedToken?.address || selectedToken.address === "0x0000000000000000000000000000000000000000";
+
+  const nativeBal = useBalance({
+    address,
+    chainId,
+    query: { enabled: Boolean(address && chainId && isNative) },
+  });
+
+  const tokenBal = useBalance({
+    address,
+    chainId,
+    token: !isNative ? (selectedToken?.address as Address | undefined) : undefined,
+    query: { enabled: Boolean(address && chainId && !isNative && selectedToken?.address) },
+  });
+
+  const balanceWei: bigint | undefined = isNative ? nativeBal.data?.value : tokenBal.data?.value;
+  const balanceFormatted: string = isNative
+    ? nativeBal.data?.formatted ?? "0"
+    : tokenBal.data?.formatted ?? "0";
+  const tokenSymbol = isNative ? "BNB" : (selectedToken?.symbol ?? "TOKEN");
+  const hasBalance = (balanceWei ?? 0n) > 0n;
+
   return (
     <div className="web3-card p-6">
       <div className="mb-4">
@@ -229,7 +253,7 @@ export default function DonateCard() {
 
       <div className="mt-4">
         <label className="web3-label">Country *</label>
-        <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States" className="web3-input" />
+        <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Italy" className="web3-input" />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4">
@@ -244,6 +268,9 @@ export default function DonateCard() {
         <div>
           <label className="web3-label">Amount</label>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" className="web3-input" />
+          <p className="mt-1 text-xs text-greyscale-500">
+            Balance: <span className="font-medium">{balanceFormatted}</span> {tokenSymbol}
+          </p>
         </div>
       </div>
 
@@ -286,7 +313,7 @@ export default function DonateCard() {
         )}
       </div>
 
-      <Button onClick={onDonate} disabled={!isAmountValid || !address || !donationContract || isLoading} className="mt-6 w-full">
+      <Button onClick={onDonate} disabled={!hasBalance || !isAmountValid || !address || !donationContract || isLoading} className="mt-6 w-full">
         {isLoading ? <><Spinner className="mr-2" /> Processing…</> : "Donate"}
       </Button>
 
