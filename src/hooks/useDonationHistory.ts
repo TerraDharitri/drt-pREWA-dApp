@@ -61,30 +61,44 @@ async function existsDonation(pc: PC, address: Address, id: bigint) {
  * Discover the max tokenId by probing storage (no events, no counters).
  * Strategy: exponential growth until first empty slot, then binary search.
  */
-async function findMaxTokenIdByProbe(pc: PC, address: Address): Promise<bigint> {
-  // If #1 doesn't exist, there are no donations.
-  if (!(await existsDonation(pc, address, 1n))) return 0n;
+async function findMaxTokenIdByProbe(pc: PC, address: Address): Promise<bigint | null> {
+  // CORRECTED: Start check from tokenId 0.
+  if (!(await existsDonation(pc, address, 0n))) {
+    // If tokenId 0 doesn't exist, no donations have been made.
+    return null;
+  }
 
+  // If only tokenId 0 exists, and 1 does not, the maxId is 0.
+  if (!(await existsDonation(pc, address, 1n))) {
+    return 0n;
+  }
+
+  // At this point, we know donations at 0 and 1 exist.
+  // We can start our search range from 1.
   let lo = 1n;
   let hi = 2n;
 
-  // Exponential phase
+  // Exponential phase: quickly find an upper bound.
   while (await existsDonation(pc, address, hi)) {
     lo = hi;
     hi = hi * 2n;
-    // Hard cap to avoid infinite loops on weird contracts (supports > 2^20 donations)
+    // Hard cap to avoid infinite loops on weird contracts
     if (hi > (1n << 20n)) break;
   }
 
-  // Binary search: find last id with timestamp > 0
+  // Binary search: find the last existing id within the [lo, hi] range.
   while (lo + 1n < hi) {
     const mid = (lo + hi) >> 1n;
-    if (await existsDonation(pc, address, mid)) lo = mid;
-    else hi = mid;
+    if (await existsDonation(pc, address, mid)) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
   }
 
   return lo;
 }
+
 
 /** Batch read donations for a numeric range (inclusive). */
 async function readRange(pc: PC, address: Address, start: bigint, end: bigint) {
@@ -147,8 +161,14 @@ async function readRange(pc: PC, address: Address, start: bigint, end: bigint) {
 
 async function fetchHistory(pc: PC, address: Address): Promise<DonationRow[]> {
   const maxId = await findMaxTokenIdByProbe(pc, address);
-  if (maxId === 0n) return [];
-  return readRange(pc, address, 1n, maxId);
+  
+  // If probe returns null, it means not even tokenId 0 exists. No donations.
+  if (maxId === null) {
+    return [];
+  }
+  
+  // The range is from 0 up to and including the maxId found.
+  return readRange(pc, address, 0n, maxId);
 }
 
 /**

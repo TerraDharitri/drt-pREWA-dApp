@@ -65,7 +65,17 @@ const DonationTable: React.FC<{
             {rows.map((row: RowLike, i: number) => {
               const tokenAddr: Address | null =
                 row?.token === zeroAddress ? null : (row?.token as Address | undefined) ?? null;
-              const { symbol, decimals } = tokenMeta(tokenAddr);
+
+              // Get metadata (symbol, decimals) from our reliable local list
+              const localMeta = tokenMeta(tokenAddr);
+              // Get the symbol that was stored on-chain with the donation record
+              const onChainSymbol = row?.symbol;
+
+              // Decide which symbol to display. Prioritize a valid on-chain symbol.
+              const displaySymbol = onChainSymbol && onChainSymbol.toUpperCase() !== "TOKEN" ? onChainSymbol : localMeta.symbol;
+              // Always use decimals from our local list for consistency
+              const decimals = localMeta.decimals;
+              
               const ts = Number(row?.timestamp ?? 0) * 1000;
               const tokenId = row?.tokenId ?? row?.nftId ?? row?.certificateId;
 
@@ -77,7 +87,7 @@ const DonationTable: React.FC<{
                   <td className="px-4 py-2 align-middle font-mono text-xs">
                     {row?.donor}
                   </td>
-                  <td className="px-4 py-2 align-middle whitespace-nowrap">{symbol}</td>
+                  <td className="px-4 py-2 align-middle whitespace-nowrap">{displaySymbol}</td>
                   <td className="px-4 py-2 align-middle whitespace-nowrap">
                     {formatUnits((row?.amount ?? 0n) as bigint, decimals)}
                   </td>

@@ -12,6 +12,7 @@ export const pREWAContracts = {
     EmergencyTimelockController: '0x52468d6a9abbf4e72bbf2603ceed882b5c3b9157' as Address,
     LiquidityManager: '0x5a36f36d7387acd2d8c7e8a35372f20cb6910d12' as Address,
     LPStaking: '0xc7055816c1c70785667cee051bc7d207e6ffb633' as Address,
+    DonationTracker: '0x99C5D7b71b30687A8754750129bA8570009276E9' as Address,
     Donation: '0x99C5D7b71b30687A8754750129bA8570009276E9' as Address,
     OracleIntegration: '0xa6a0e83c6d5bef2a674c038d78657124a928dd01' as Address,
     pREWAToken: '0x828f07e624f227fde5906611461deab26dccc600' as Address,
