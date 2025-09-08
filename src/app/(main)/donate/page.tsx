@@ -6,7 +6,8 @@ import { useAccount } from "wagmi";
 import { ConnectWalletMessage } from "@/components/web3/ConnectWalletMessage";
 import DonateCard from "@/components/web3/donate/DonateCard";
 import { SectionHeader } from "@/components/layout/SectionHeader";
-import DonateSummary from "@/components/web3/donate/DonateSummary";
+// FIX: Changed to a named import using curly braces
+import {DonateSummary} from "@/components/web3/donate/DonateSummary";
 
 export default function DonatePage() {
   const { isConnected } = useAccount();

@@ -8,7 +8,6 @@ const nextConfig = {
         hostname: "raw.githubusercontent.com",
         pathname: "/trustwallet/assets/master/blockchains/**",
       },
-      // FIX: Add a new pattern to whitelist images from assets.coingecko.com
       {
         protocol: "https",
         hostname: "assets.coingecko.com",
@@ -41,7 +40,17 @@ const nextConfig = {
         ]
       }
     ];
-  }
+  },
+
+  // --- ADD THIS WEBPACK CONFIGURATION ---
+  webpack(config, { isServer }) {
+    // Tell Webpack to ignore bundling the native binary for @resvg/resvg-js on the server.
+    if (isServer) {
+      config.externals.push('@resvg/resvg-js');
+    }
+
+    return config;
+  },
 };
 
 export default nextConfig;

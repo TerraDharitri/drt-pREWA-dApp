@@ -1,205 +1,153 @@
-import type { NextRequest } from "next/server";
+// src/app/api/email-certificate/route.ts
+
 import { NextResponse } from "next/server";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { Resend } from "resend";
 import { promises as fs } from "fs";
 import path from "path";
+import { isAddress } from "viem";
+import { pREWAContracts } from "@/contracts/addresses"; // <--- FIX: Added this import
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// Initialize the Resend client with your API key from environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
+const fromEmail = process.env.RESEND_FROM_EMAIL || "no-reply@yourdomain.com";
 
-type OrgInfo = {
-  legalName: string;
-  regNo?: string;
-  address?: string;
-  signatory?: string;
-};
-
-type Body = {
-  chainId: number;
-  txHash: string;
-  contractAddress: `0x${string}`;
-  tokenAddress: `0x${string}` | null;
-  donorAddress: `0x${string}`;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  email?: string;
-  amount: string;      // decimal string
-  assetSymbol: string; // e.g. BNB, USDT
-  org: OrgInfo;
-};
-
-function bscTxUrl(chainId: number, tx: string) {
-  const base = chainId === 97 ? "https://testnet.bscscan.com/tx/" : "https://bscscan.com/tx/";
-  return base + tx;
-}
-
-function shortHex(addr: string, keep = 6) {
-  if (!addr?.startsWith("0x") || addr.length <= 2 * keep + 2) return addr;
-  return `${addr.slice(0, 2 + keep)}…${addr.slice(-keep)}`;
-}
-
-async function readLogoB64() {
-  try {
-    const p = path.join(process.cwd(), "public", "dharitri-logo.svg");
-    const raw = await fs.readFile(p);
-    return Buffer.from(raw).toString("base64");
-  } catch {
-    return "";
-  }
-}
-
-async function qrPngDataUrl(text: string) {
-  try {
-    const QR: any = (await import("qrcode")).default ?? (await import("qrcode"));
-    return await QR.toDataURL(text, { margin: 1, width: 520 });
-  } catch {
-    return "";
-  }
-}
-
-function buildSvg(params: {
-  org: OrgInfo;
+// Define the shape of the incoming request data for validation
+interface CertificateData {
   donorName: string;
   donorAddress: string;
   amount: string;
-  asset: string;
+  symbol: string;
+  timestamp: string; // e.g., "2025-09-08 11:27"
+  tokenId: string;
   txHash: string;
-  chainId: number;
-  logoB64: string;
-  qrDataUrl: string;
-}) {
-  const { org, donorName, donorAddress, amount, asset, txHash, chainId, logoB64, qrDataUrl } = params;
-  const network = chainId === 97 ? "BNB Smart Chain Testnet" : "BNB Smart Chain";
-  const scanUrl = bscTxUrl(chainId, txHash);
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="1920" height="1200" viewBox="0 0 1920 1200" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      .title { font: 700 72px Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill:#0f3d2e }
-      .subtitle { font: 600 34px Inter, system-ui; fill: #0f3d2e }
-      .label { font: 500 26px Inter, system-ui; fill: #374151 }
-      .value { font: 700 56px Inter, system-ui; fill: #0f172a }
-      .body { font: 400 24px Inter, system-ui; fill: #1f2937 }
-      .fine { font: 400 20px Inter, system-ui; fill: #6b7280 }
-    </style>
-  </defs>
-
-  <rect width="100%" height="100%" rx="28" ry="28" fill="#f6fbf8"/>
-
-  <g transform="translate(100, 90)">
-    <rect x="0" y="0" width="1720" height="140" rx="20" ry="20" fill="#eaf6f0"/>
-    ${logoB64 ? `<image href="data:image/svg+xml;base64,${logoB64}" x="30" y="22" width="96" height="96" />` : ""}
-    <text x="150" y="65" class="title">${org.legalName || "DHARITRI FOUNDATION"}</text>
-    <text x="150" y="115" class="subtitle">Official Donation Receipt</text>
-  </g>
-
-  <g transform="translate(120, 300)">
-    <text class="label" x="0" y="0">Reg / Company No:</text>
-    <text class="body"  x="0" y="40">${org.regNo || ""}${org.address ? " — " + org.address : ""}</text>
-
-    <text class="label" x="0" y="130">Donor</text>
-    <text class="value" x="0" y="185">${donorName}</text>
-    <text class="fine"  x="0" y="215">${shortHex(donorAddress)}</text>
-
-    <text class="label" x="0" y="305">Amount</text>
-    <text class="value" x="0" y="360">${amount} ${asset}</text>
-
-    <text class="label" x="0" y="450">Date (UTC)</text>
-    <text class="body"  x="0" y="495">${new Date().toISOString().slice(0,10)}</text>
-
-    <text class="label" x="0" y="575">Network</text>
-    <text class="body"  x="0" y="620">${network}</text>
-
-    <text class="label" x="0" y="700">Transaction</text>
-    <a href="${scanUrl}" target="_blank">
-      <text class="body" x="0" y="745">${shortHex(txHash, 18)}</text>
-    </a>
-  </g>
-
-  <g transform="translate(1240, 300)">
-    <rect x="0" y="0" width="540" height="540" rx="28" ry="28" fill="#eaf6f0"/>
-    ${qrDataUrl ? `<image href="${qrDataUrl}" x="50" y="50" width="440" height="440" />` : ""}
-    <text class="fine" x="195" y="520">Scan to verify</text>
-  </g>
-
-  <g transform="translate(100, 1050)">
-    <text class="fine" x="0" y="0">No goods or services were provided in exchange for this donation.</text>
-    <text class="fine" x="0" y="60">© ${org.legalName || "DHARITRI FOUNDATION"}</text>
-    <text class="fine" x="1420" y="0">${org.signatory || "Authorized Director"}</text>
-  </g>
-</svg>`;
+  email: string;
+  explorerUrl: string;
+  chainId: number; // Add chainId to resolve the correct contract address
 }
 
-export async function POST(req: NextRequest) {
+/**
+ * Validates the incoming request body.
+ */
+function validateRequest(data: any): data is CertificateData {
+  const required = ["donorName", "donorAddress", "amount", "symbol", "timestamp", "tokenId", "txHash", "email", "explorerUrl", "chainId"];
+  for (const field of required) {
+    if (data[field] === undefined) { // Check for undefined to allow empty strings if needed
+      console.error(`Validation failed: Missing field '${field}'`);
+      return false;
+    }
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    console.error("Validation failed: Invalid email format");
+    return false;
+  }
+  if (!isAddress(data.donorAddress)) {
+      console.error("Validation failed: Invalid donor address");
+      return false;
+  }
+  if (typeof data.chainId !== 'number' || ![56, 97].includes(data.chainId)) {
+      console.error("Validation failed: Invalid or unsupported chainId");
+      return false;
+  }
+  return true;
+}
+
+
+export async function POST(req: Request) {
   try {
-    const body: Body = await req.json();
+    const body = await req.json();
 
-    const donorName = [body.firstName, body.middleName || "", body.lastName]
-      .map((s) => (s || "").trim())
-      .filter(Boolean)
-      .join(" ");
+    if (!validateRequest(body)) {
+      return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    }
 
-    const logoB64 = await readLogoB64();
-    const qr = await qrPngDataUrl(bscTxUrl(body.chainId, body.txHash));
-    const svg = buildSvg({
-      org: body.org || { legalName: "DHARITRI FOUNDATION" },
-      donorName: donorName || body.donorAddress,
-      donorAddress: body.donorAddress,
-      amount: body.amount,
-      asset: body.assetSymbol,
-      txHash: body.txHash,
-      chainId: body.chainId,
-      logoB64,
-      qrDataUrl: qr,
-    });
+    const {
+      donorName, donorAddress, amount, symbol, timestamp,
+      tokenId, txHash, email, explorerUrl, chainId
+    } = body;
+    
+    // Dynamically get the donation contract address based on the chainId
+    const donationContractAddress = (pREWAContracts as any)[chainId]?.Donation;
+    if (!donationContractAddress) {
+        return NextResponse.json({ error: `Donation contract not configured for chainId ${chainId}`}, { status: 400 });
+    }
 
-    // Try to load resvg at runtime without letting webpack see the module name.
-    let pngBase64: string | null = null;
+    // --- 1. Load Assets ---
+    // Resolve paths relative to the project root
+    const svgTemplatePath = path.join(process.cwd(), "src", "assets", "certificate-template.svg");
+    const fontPath = path.join(process.cwd(), "src", "assets", "Inter-Bold.ttf");
+    
+    const [svgTemplate, fontBytes] = await Promise.all([
+      fs.readFile(svgTemplatePath, "utf-8"),
+      fs.readFile(fontPath),
+    ]);
+    
+    // --- 2. Populate SVG Template ---
+    const populatedSvg = svgTemplate
+      .replace("{{DONOR_NAME}}", donorName)
+      .replace("{{AMOUNT}}", `${amount} ${symbol}`)
+      .replace("{{DATE}}", timestamp)
+      .replace("{{CERTIFICATE_ID}}", `#${tokenId}`)
+      .replace("{{TX_HASH}}", `${txHash.slice(0, 10)}...${txHash.slice(-8)}`)
+      .replace("{{DONOR_ADDRESS}}", `${donorAddress.slice(0, 10)}...${donorAddress.slice(-8)}`);
+
+    // --- 3. Convert SVG to PNG (with Dynamic Import) ---
+    let pngBuffer: Buffer;
     try {
-      const pkg = "@resvg/" + "resvg-js";
-      // eslint-disable-next-line no-eval
-      const mod: any = await (eval("import"))(pkg);
-      const Resvg = mod?.Resvg ?? mod?.default?.Resvg;
-      if (Resvg) {
-        const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1920 } });
-        const png = resvg.render().asPng();
-        pngBase64 = Buffer.from(png).toString("base64");
-      }
-    } catch (err) {
-      // resvg unavailable: we’ll return without PNG; client UI can handle fallback.
-      console.warn("resvg not available; skipping PNG render:", err);
+      const { Resvg } = await import('@resvg/resvg-js');
+      const resvg = new Resvg(populatedSvg, {
+        font: {
+          fontFiles: [fontPath], 
+          defaultFontFamily: "Inter",
+        },
+      });
+      const pngData = resvg.render();
+      pngBuffer = pngData.asPng();
+    } catch (e: any) {
+      console.error("Skipping PNG render due to resvg error:", e.message);
+      return NextResponse.json({ error: "Failed to render certificate image." }, { status: 500 });
     }
 
-    // (Optional) email via Resend if we produced a PNG
-    if (pngBase64 && process.env.RESEND_API_KEY && body.email) {
-      try {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.CERT_FROM_EMAIL || "Dharitri <onboarding@resend.dev>",
-          to: body.email,
-          subject: "Your Dharitri Donation Receipt",
-          text: `Thank you for your donation of ${body.amount} ${body.assetSymbol}. Tx: ${body.txHash}`,
-          attachments: [
-            {
-              filename: "Dharitri-Donation-Receipt.png",
-              content: Buffer.from(pngBase64, "base64"),
-              contentType: "image/png",
-            },
-          ],
-        });
-      } catch (e) {
-        console.warn("Resend email failed:", e);
-      }
-    }
+    // --- 4. Create PDF ---
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([1200, 675]);
+    const pngImage = await pdfDoc.embedPng(pngBuffer);
+    page.drawImage(pngImage, { x: 0, y: 0, width: 1200, height: 675 });
+    const pdfBytes = await pdfDoc.save();
 
-    return NextResponse.json({
-      ok: true,
-      pngDataUrl: pngBase64 ? `data:image/png;base64,${pngBase64}` : null,
+    // --- 5. Send Email with PDF Attachment ---
+    const attachment = {
+      filename: `Dharitri_Donation_${tokenId}.pdf`,
+      content: Buffer.from(pdfBytes),
+    };
+
+    const { data, error } = await resend.emails.send({
+      from: `Dharitri Protocol <${fromEmail}>`,
+      to: [email],
+      subject: "Your Dharitri Protocol Donation Certificate",
+      html: `
+        <h1>Thank You for Your Donation!</h1>
+        <p>Dear ${donorName},</p>
+        <p>Thank you for your generous donation of ${amount} ${symbol} to the Dharitri Protocol. Your support is vital for our mission.</p>
+        <p>Your official donation certificate is attached to this email.</p>
+        <p>You can view your donation certificate on the blockchain here:</p>
+        <p><a href="${explorerUrl}/token/${donationContractAddress}?a=${tokenId}">View Certificate #${tokenId}</a></p>
+        <br/>
+        <p>Sincerely,</p>
+        <p>The Dharitri Team</p>
+      `,
+      attachments: [attachment],
     });
-  } catch (e: any) {
-    console.error("/api/email-certificate error:", e);
-    return NextResponse.json({ ok: false, error: e?.message || "Internal error" }, { status: 500 });
+
+    if (error) {
+      console.error("Resend API Error:", error);
+      return NextResponse.json({ error: "Failed to send email." }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: "Certificate sent successfully!", data }, { status: 200 });
+
+  } catch (error: any) {
+    console.error("Unhandled error in /api/email-certificate:", error);
+    return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }

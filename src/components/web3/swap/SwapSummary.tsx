@@ -1,7 +1,7 @@
 // src/components/web3/swap/SwapSummary.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useSwapHistory, type SwapRow } from "@/hooks/useSwapHistory";
 
 function explorerBase(chainId?: number) {
@@ -15,127 +15,32 @@ function explorerBase(chainId?: number) {
   }
 }
 
-// Derive the UI-friendly fields expected by the old component
-function toDisplay(row: SwapRow) {
-  const a0in = Number(row.amount0In || "0");
-  const a1in = Number(row.amount1In || "0");
-  const a0out = Number(row.amount0Out || "0");
-  const a1out = Number(row.amount1Out || "0");
+export function SwapSummary() {
+  const [addr, setAddr] = React.useState<string>("");
+  const {
+    data: swaps = [],
+    isLoading,
+    pair,
+    chainId,
+    debug,
+  } = useSwapHistory(addr as any);
 
-  // tokenIn/amountIn is whichever side has non-zero “in”
-  let tokenIn = "";
-  let amountIn = 0;
-  if (a0in > 0) {
-    tokenIn = row.sym0;
-    amountIn = a0in;
-  } else if (a1in > 0) {
-    tokenIn = row.sym1;
-    amountIn = a1in;
-  }
-
-  // tokenOut/amountOut is whichever side has non-zero “out”
-  let tokenOut = "";
-  let amountOut = 0;
-  if (a0out > 0) {
-    tokenOut = row.sym0;
-    amountOut = a0out;
-  } else if (a1out > 0) {
-    tokenOut = row.sym1;
-    amountOut = a1out;
-  }
-
-  return {
-    ...row,
-    tokenIn,
-    tokenOut,
-    amountIn,
-    amountOut,
-  };
-}
-
-function tsToUtc(ts?: bigint) {
-  if (!ts) return "—";
-  try {
-    const d = new Date(Number(ts) * 1000);
-    // YYYY-MM-DD HH:mm:ss
-    return new Intl.DateTimeFormat("en-GB", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "UTC",
-    })
-      .format(d)
-      .replace(",", "");
-  } catch {
-    return "—";
-  }
-}
-
-const SwapSummary: React.FC = () => {
-  const { data, chainId, pair, debug } = useSwapHistory();
-
-  const rows = useMemo(() => (data ?? []).map(toDisplay), [data]);
   const base = explorerBase(chainId);
 
   return (
-    <div className="w-full space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Recent Swaps</h3>
-        {pair ? (
-          <a
-            className="text-xs underline text-green-600"
-            href={`${base}/address/${pair}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View Pair
-          </a>
-        ) : null}
+    <div className="rounded-xl border border-greyscale-100 dark:border-dark-border">
+      <div className="flex items-center justify-between p-3 md:p-4 border-b border-greyscale-100 dark:border-dark-border">
+        <div className="font-medium">Recent Swaps (30d)</div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-greyscale-500">Pair:</span>
+          <input
+            value={addr}
+            onChange={(e) => setAddr(e.target.value)}
+            placeholder="Override pair 0x... (optional)"
+            className="w-[320px] rounded-md border px-2 py-1 text-xs bg-transparent"
+          />
+        </div>
       </div>
-
-      {rows.length === 0 ? (
-        <div className="text-xs text-greyscale-500 px-3 py-2 border rounded">
-          No swaps found yet.
-        </div>
-      ) : (
-        <div className="border rounded overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-greyscale-50">
-              <tr className="text-left">
-                <th className="px-3 py-2 w-[160px]">Date (UTC)</th>
-                <th className="px-3 py-2">Summary</th>
-                <th className="px-3 py-2 w-[90px]">Tx</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => (
-                <tr key={`${s.hash}-${s.blockNumber}-${s.logIndex}`} className="border-t">
-                  <td className="px-3 py-2">{tsToUtc(s.timestamp)}</td>
-                  <td className="px-3 py-2">
-                    {`Swap ${Number(s.amountIn).toFixed(4)} ${s.tokenIn} for ${Number(
-                      s.amountOut
-                    ).toFixed(4)} ${s.tokenOut}`}
-                  </td>
-                  <td className="px-3 py-2">
-                    <a
-                      className="text-green-600 underline"
-                      href={`${base}/tx/${s.hash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       {/* tiny diagnostics row */}
       <div className="px-3 py-2 text-[11px] text-greyscale-500 flex flex-wrap gap-4">
@@ -147,20 +52,81 @@ const SwapSummary: React.FC = () => {
         </span>
         {debug?.fromBlock && (
           <span>
-            scanned:{" "}
-            <b>
-              {debug.fromBlock?.toString()} → {debug.toBlock?.toString()}
-            </b>
+            from: <b>{debug.fromBlock.toString()}</b>
           </span>
         )}
-        {debug?.logsFetched !== undefined && (
+        {debug?.latestBlock && (
           <span>
-            rows: <b>{debug.logsFetched}</b>
+            latest: <b>{debug.latestBlock.toString()}</b>
+          </span>
+        )}
+        {typeof debug?.logsFetched === "number" && (
+          <span>
+            logs: <b>{debug.logsFetched}</b>
+          </span>
+        )}
+        {debug?.stepsTried && (
+          <span>
+            spans: <b>{debug.stepsTried}</b>
+          </span>
+        )}
+        {debug?.reason && (
+          <span>
+            note: <b>{debug.reason}</b>
           </span>
         )}
       </div>
+
+      {isLoading ? (
+        <div className="px-2 py-8 text-center text-sm">Loading swaps…</div>
+      ) : !(swaps as SwapRow[]).length ? (
+        <div className="px-2 py-8 text-center text-sm text-greyscale-400">
+          No swaps found in the recent window.
+        </div>
+      ) : (
+        <div className="max-h-[420px] overflow-y-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-greyscale-100 bg-greyscale-50/50 dark:border-dark-border dark:bg-dark-surface sticky top-0">
+              <tr>
+                <th className="px-3 py-2 whitespace-nowrap">Block</th>
+                <th className="px-3 py-2 whitespace-nowrap">Tx</th>
+                <th className="px-3 py-2 whitespace-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(swaps as SwapRow[]).map((s: SwapRow) => (
+                <tr
+                  key={`${s.hash}-${s.blockNumber}`}
+                  className="border-b last:border-b-0 border-greyscale-100/60 dark:border-dark-border/60"
+                >
+                  <td className="px-3 py-2">{s.blockNumber.toString()}</td>
+                  <td className="px-3 py-2">
+                    {base ? (
+                      <a
+                        className="underline"
+                        href={`${base}/tx/${s.hash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {s.hash.slice(0, 8)}…{s.hash.slice(-6)}
+                      </a>
+                    ) : (
+                      <span>{s.hash}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {`Swap ${Number(s.amountIn).toFixed(4)} ${s.tokenIn} for ${Number(
+                      s.amountOut
+                    ).toFixed(4)} ${s.tokenOut}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default SwapSummary;
