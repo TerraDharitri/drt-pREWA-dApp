@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
 import { WalletIcon } from "lucide-react";
@@ -74,6 +75,17 @@ export default function HomePage() {
           </div>
       </div>
       {/* ========== NEW COMPONENT ENDS HERE ========== */}
+      <div className="mt-16">
+        <Link href="https://www.team.finance/view-coin/0x828f07e624F227Fde5906611461deAb26dcCc600?name=pREWA%20Token&symbol=pREWA&chainid=0x38" target="_blank" rel="noopener noreferrer">
+            <Image
+              src="/Team_Finance_Token_Secured.svg"
+              alt="Token Secured by Team Finance"
+              width={220}
+              height={50}
+              priority
+            />
+        </Link>
+      </div>
     </div>
   );
 }

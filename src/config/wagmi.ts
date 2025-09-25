@@ -1,5 +1,5 @@
 // src/config/wagmi.ts
-import { createConfig, http, cookieStorage, createStorage } from "wagmi";
+import { createConfig, http } from "wagmi";
 import { bsc, bscTestnet } from "wagmi/chains";
 import { injected, walletConnect, coinbaseWallet, safe } from "wagmi/connectors";
 
@@ -9,37 +9,39 @@ export const chains = [bsc, bscTestnet] as const;
 
 export const config = createConfig({
   chains,
+  connectors: [
+    // Safe connector first so it wins inside the Safe iframe
+    safe(),
+    injected({ target: "metaMask" }),
+    coinbaseWallet({ appName: "Dharitri Protocol" }),
+    ...(projectId
+      ? [
+          walletConnect({
+            projectId,
+            metadata: {
+              name: "Dharitri Protocol",
+              description: "pREWA vesting & admin",
+              url: "https://prewa.dharitri.org",
+              icons: [],
+            },
+            // ConnectKit handles the QR/modal
+            showQrModal: false,
+          }),
+        ]
+      : []),
+  ],
   transports: {
     [bsc.id]: http(process.env.NEXT_PUBLIC_BSC_RPC_URL),
     [bscTestnet.id]: http(process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL),
   },
-  // IMPORTANT: connectors must be an ARRAY of connector factories (not a function)
-  connectors: [
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: "Dharitri Protocol" }),
-    safe(),
-    walletConnect({
-      projectId,
-      showQrModal: false, // ConnectKit will render the modal
-      metadata: {
-        name: "Dharitri Protocol",
-        description: "Dharitri dApp",
-        url:
-          typeof window !== "undefined"
-            ? window.location.origin
-            : "https://prewa.dharitri.org",
-        icons: ["https://prewa.dharitri.org/icon.png"],
-      },
-    }),
-  ],
   multiInjectedProviderDiscovery: true,
-  storage: createStorage({
-    storage: typeof window === "undefined" ? cookieStorage : window.localStorage,
-  }),
 });
 
+// TS “Register” remains as you already have
 declare module "wagmi" {
   interface Register {
     config: typeof config;
   }
 }
+
+export type AppWagmiConfig = typeof config;

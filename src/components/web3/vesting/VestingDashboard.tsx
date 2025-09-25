@@ -1,4 +1,3 @@
-// src/components/web3/vesting/VestingDashboard.tsx
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -36,7 +35,6 @@ export function VestingDashboard() {
     ? pREWAAddresses[chainId as keyof typeof pREWAAddresses]?.pREWAToken
     : undefined;
 
-  // pREWA balance for the connected owner (optional while loading)
   const { data: pREWABalance } = useBalance({
     address,
     token: pREWAAddress,
@@ -50,7 +48,6 @@ export function VestingDashboard() {
     vestingFactoryAddress
   );
 
-  // Robust approval check (works even before balance is fetched)
   const needsApproval = useMemo(() => {
     if (!isAmountValid) return false;
     if (!allowance) return true;
@@ -79,14 +76,27 @@ export function VestingDashboard() {
       return toast.error("Cliff cannot be longer than the total duration.");
 
     const create = () => {
-      let startTime = 0;
+      // Default to 0, which the contract interprets as "start now" (block.timestamp)
+      let startTime = 0; 
+
       if (startDate) {
-        const selectedDate = new Date(startDate + "T00:00:00");
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (selectedDate < today) return toast.error("Start date cannot be in the past.");
-        startTime = Math.floor(selectedDate.getTime() / 1000);
+        // Create date objects for midnight UTC for accurate comparison
+        const selectedDateUTC = new Date(startDate);
+        const now = new Date();
+        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+        if (selectedDateUTC < todayUTC) {
+          return toast.error("Start date cannot be in the past.");
+        }
+        
+        // Only set a specific startTime if the selected date is in the future.
+        // If the date is today, we leave startTime as 0 to let the contract use block.timestamp,
+        // which avoids the race condition of the transaction being mined after midnight.
+        if (selectedDateUTC > todayUTC) {
+          startTime = Math.floor(selectedDateUTC.getTime() / 1000);
+        }
       }
+
       createVestingSchedule(
         beneficiary as Address,
         startTime,
@@ -115,12 +125,10 @@ export function VestingDashboard() {
     );
   }
 
-  // If the connected user/Safe is not the owner, render nothing (admin-only)
   if (!isOwner) {
     return null;
   }
 
-  // Admin form (factory owner only)
   return (
     <Card>
       <CardHeader>

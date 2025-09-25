@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query"; // Import the query client
 import { safeFind, toArray } from "@/utils/safe";
 import {
   decodeEventLog,
@@ -155,11 +156,16 @@ async function buildCertificateSvg(opts: { orgName: string; orgRegNo: string; or
 
 export type DonateResult = { txHash: Hex; tokenId: bigint | null; tokenUri: string | null; imageSvg: string | null; imagePngDataUrl: string | null; };
 
+interface DonateOptions {
+  onSuccess?: () => void;
+}
+
 export function useDonate() {
   const { address: donor } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId });
   const { writeContractAsync } = useWriteContract();
+  const queryClient = useQueryClient();
 
   const contractMap = pREWAContracts as Record<number, { Donation?: Address }>;
   const donationAddress = contractMap[chainId]?.Donation as Address | undefined;
@@ -173,12 +179,11 @@ export function useDonate() {
     throw new Error(`Unsupported donateToken signature: (${inputs.join(", ")})`);
   }
 
-  async function donateNative(amountWei: bigint, donorName?: string, donorAddressStr?: string): Promise<DonateResult> {
+  async function donateNative(amountWei: bigint, donorName?: string, donorAddressStr?: string, options?: DonateOptions): Promise<DonateResult> {
     if (!donor) throw new Error("Connect a wallet");
     if (!donationAddress) throw new Error("Donation contract not configured for this network");
     if (!publicClient) throw new Error("Public client unavailable");
 
-    // FIX: Removed incorrect generic types and let viem infer the return type.
     const nonce = await publicClient.readContract({
         address: donationAddress,
         abi: DonationAbi,
@@ -188,18 +193,17 @@ export function useDonate() {
 
     const donationHash = keccak256(encodeAbiParameters([{ type: "uint256" }, { type: "address" }, { type: "address" }, { type: "uint256" }, { type: "uint256" }], [BigInt(chainId), donor as Address, zeroAddress, amountWei, nonce])) as Hex;
     const txHash = await writeContractAsync({ address: donationAddress, abi: DonationAbi, functionName: "donateNative", args: [donationHash], value: amountWei });
-    return await finalize(txHash, donorName, donorAddressStr, amountWei, "BNB", 18);
+    return await finalize(txHash, donorName, donorAddressStr, amountWei, "BNB", 18, undefined, options);
   }
 
   const { approve } = useTokenApproval(undefined, donationAddress);
 
-  async function donateToken(token: Address, amount: bigint, tokenSymbol: string, decimals: number, donorName?: string, donorAddressStr?: string): Promise<DonateResult> {
+  async function donateToken(token: Address, amount: bigint, tokenSymbol: string, decimals: number, donorName?: string, donorAddressStr?: string, options?: DonateOptions): Promise<DonateResult> {
     if (!donor) throw new Error("Connect a wallet");
     if (!donationAddress) throw new Error("Donation contract not configured for this network");
     if (!publicClient) throw new Error("Public client unavailable");
 
     const doDonation = async () => {
-        // FIX: Removed incorrect generic types and let viem infer the return type.
         const nonce = await publicClient.readContract({
             address: donationAddress,
             abi: DonationAbi,
@@ -228,7 +232,7 @@ export function useDonate() {
             txHash = await writeContractAsync({ address: donationAddress, abi: DonationAbi as any, functionName: "donateERC20" as any, args: args as any });
         }
 
-        return await finalize(txHash, donorName, donorAddressStr, amount, tokenSymbol, decimals, token);
+        return await finalize(txHash, donorName, donorAddressStr, amount, tokenSymbol, decimals, token, options);
     }
     
     const currentAllowance = await publicClient.readContract({
@@ -254,11 +258,18 @@ export function useDonate() {
 
   const ERC1155_TRANSFER_SINGLE = [{ type: "event", name: "TransferSingle", inputs: [{ indexed: true,  name: "operator", type: "address" }, { indexed: true,  name: "from",     type: "address" }, { indexed: true,  name: "to",       type: "address" }, { indexed: false, name: "id",       type: "uint256" }, { indexed: false, name: "value",    type: "uint256" }], },] as const;
 
-  async function finalize(txHash: Hex, donorName: string | undefined, donorAddressStr: string | undefined, rawAmount: bigint, symbol: string, decimals: number, tokenAddress?: Address): Promise<DonateResult> {
+  async function finalize(txHash: Hex, donorName: string | undefined, donorAddressStr: string | undefined, rawAmount: bigint, symbol: string, decimals: number, tokenAddress?: Address, options?: DonateOptions): Promise<DonateResult> {
     const receipt = await publicClient!.waitForTransactionReceipt({ hash: txHash });
     
     if (receipt.status !== 'success') {
       throw new Error("Transaction failed on-chain. Please check the transaction on BscScan for details.");
+    }
+
+    // --- MODIFIED: Invalidate all queries to ensure everything refreshes ---
+    queryClient.invalidateQueries();
+    
+    if (options?.onSuccess) {
+      options.onSuccess();
     }
 
     let tokenId: bigint | null = null;

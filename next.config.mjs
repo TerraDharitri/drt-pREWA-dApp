@@ -42,12 +42,15 @@ const nextConfig = {
     ];
   },
 
-  // --- ADD THIS WEBPACK CONFIGURATION ---
+  // --- UPDATED WEBPACK CONFIGURATION ---
   webpack(config, { isServer }) {
     // Tell Webpack to ignore bundling the native binary for @resvg/resvg-js on the server.
     if (isServer) {
       config.externals.push('@resvg/resvg-js');
     }
+
+    // This is to resolve the warning from @metamask/sdk for React Native specific modules.
+    config.resolve.alias['@react-native-async-storage/async-storage'] = false;
 
     return config;
   },

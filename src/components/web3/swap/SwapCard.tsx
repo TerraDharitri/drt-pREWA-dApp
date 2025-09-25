@@ -1,4 +1,3 @@
-// src/components/web3/swap/SwapCard.tsx
 "use client";
 import React, { useMemo } from "react";
 import { useAccount, useBalance } from "wagmi";
@@ -98,7 +97,8 @@ export function SwapCard() {
     [finalFromAmount, finalToAmount]
   );
 
-  const { data: fromTokenBalance } = useBalance({
+  // --- MODIFIED: Destructure refetch functions from useBalance ---
+  const { data: fromTokenBalance, refetch: refetchFromBalance } = useBalance({
     address,
     token:
       fromToken && fromToken.symbol !== "BNB"
@@ -106,7 +106,7 @@ export function SwapCard() {
         : undefined,
     query: { enabled: !!fromToken },
   });
-  const { data: toTokenBalance } = useBalance({
+  const { data: toTokenBalance, refetch: refetchToBalance } = useBalance({
     address,
     token:
       toToken && toToken.symbol !== "BNB"
@@ -184,17 +184,26 @@ export function SwapCard() {
     );
   };
 
-  // ---- SWAP + LOG ---------------------------------------------------------
   const doSwapAndLog = async () => {
     if (!fromToken || !toToken) return;
 
+    // --- MODIFIED: Define the success handler ---
+    const handleSuccess = () => {
+      onAmountChange('from', '');
+      onAmountChange('to', '');
+      refetchFromBalance();
+      refetchToBalance();
+    };
+
     try {
-      // `useSwap().swap` should return a tx hash or a result with `.hash`
+      // --- MODIFIED: Pass the onSuccess handler to the swap function ---
       const res: any = await swap(
         fromToken,
         toToken,
         finalFromAmount,
-        finalToAmount
+        finalToAmount,
+        50, // slippage
+        { onSuccess: handleSuccess }
       );
 
       const hash: string | undefined =
@@ -211,7 +220,7 @@ export function SwapCard() {
 
         logTx({
           hash: hash as `0x${string}`,
-          chainId: currentChain!, // watcher is tolerant
+          chainId: currentChain!,
           kind: "swap",
           title: `Swap ${fromToken.symbol} → ${toToken.symbol}`,
           address: (acct ?? address ?? "0x0000000000000000000000000000000000000000") as `0x${string}`,
@@ -224,7 +233,7 @@ export function SwapCard() {
         });
       }
     } catch {
-      // the global watcher / UI toasts will handle failure paths; nothing else to do here
+      // Errors are handled by toasts inside the useSwap hook
     }
   };
 
@@ -236,7 +245,6 @@ export function SwapCard() {
       void doSwapAndLog();
     }
   };
-  // ------------------------------------------------------------------------
 
   const getButtonText = () => {
     if (insufficientLiquidity) return "Insufficient Liquidity";
@@ -247,7 +255,6 @@ export function SwapCard() {
     return "Swap";
   };
 
-  // FIX: Add the crucial loading guard here.
   if (!fromToken || !toToken) {
     return (
       <Card className="max-w-md mx-auto">

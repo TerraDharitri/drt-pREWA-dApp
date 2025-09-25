@@ -1,4 +1,3 @@
-// src/components/web3/staking/StakingDashboard.tsx
 "use client";
 import React, { useMemo } from "react";
 import { useAccount, useReadContract, useBalance } from "wagmi";
@@ -18,6 +17,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { parseUnits, formatUnits } from "viem";
 import toast from "react-hot-toast";
 import { isValidNumberInput } from "@/lib/utils";
+import { useReadStakingPositions } from "@/hooks/useReadStakingPositions";
+import { usePrewaUsdPrice } from "@/hooks/usePrewaUsdPrice";
 
 interface StakingDashboardProps {
   totalPositionCount: number | null;
@@ -47,6 +48,34 @@ export function StakingDashboard({ totalPositionCount, selectedTierId }: Staking
     token: tokenAddress,
     query: { enabled: !!address && !!tokenAddress, refetchInterval: 5000 },
   });
+
+  const { positions, isLoading: isLoadingPositions } = useReadStakingPositions();
+  // --- MODIFIED: Correctly destructure isLoading and rename it to avoid conflicts ---
+  const { priceUsd, isLoading: isLoadingPrice } = usePrewaUsdPrice();
+
+  const totalStakedValueUSD = useMemo(() => {
+      if (isLoadingPositions || isLoadingPrice || !priceUsd || !positions || positions.length === 0) {
+          return null;
+      }
+
+      const totalStakedWei = positions
+          .filter(p => p.active)
+          .reduce((sum, pos) => sum + pos.amount, 0n);
+
+      if (totalStakedWei === 0n) {
+          return "$0.00";
+      }
+
+      const totalStaked = parseFloat(formatUnits(totalStakedWei, 18));
+      const usdValue = totalStaked * priceUsd;
+
+      return usdValue.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+      });
+  }, [positions, priceUsd, isLoadingPositions, isLoadingPrice]);
 
   const handlePercentClick = (percent: number) => {
     if (!pREWABalance) return;
@@ -115,6 +144,11 @@ export function StakingDashboard({ totalPositionCount, selectedTierId }: Staking
         )}
       </CardHeader>
       <CardContent>
+        <div className="mb-2 flex items-baseline justify-end">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Total Staked Value: {totalStakedValueUSD ?? <Spinner className="inline-block h-4 w-4" />}
+            </span>
+        </div>
         <div className="p-3 border rounded-md bg-greyscale-25 dark:bg-dark-surface space-y-2">
           <div className="flex justify-between items-baseline mb-1">
             <label htmlFor="amount" className="text-sm font-medium">

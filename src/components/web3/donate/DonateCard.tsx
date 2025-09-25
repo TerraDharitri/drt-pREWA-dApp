@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Address,
-  Hex,
   erc20Abi,
   formatUnits,
+  parseEther,
+  parseUnits,
 } from "viem";
-import { useAccount, useChainId, usePublicClient } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useBalance } from "wagmi";
 import { useDonate } from "@/hooks/useDonate";
 import { pREWAContracts } from "@/contracts/addresses";
 import { DonationAbi } from "@/contracts/abis/Donation";
@@ -17,6 +18,7 @@ import {
 } from "@/contracts/donationTokens";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/Spinner";
+import { safeFind, toArray } from "@/utils/safe";
 
 function isPositiveNumber(input: string): boolean {
   if (!input) return false;
@@ -25,10 +27,12 @@ function isPositiveNumber(input: string): boolean {
   return Number.isFinite(n) && n > 0;
 }
 
+const DONATION_COMPLIANCE_THRESHOLD = 1000;
+
 export default function DonateCard() {
   const { address } = useAccount();
   const chainId = useChainId();
-  const pc = usePublicClient({ chainId });
+  const publicClient = usePublicClient({ chainId });
   const { donateNative, donateToken } = useDonate();
 
   const [amount, setAmount] = useState("");
@@ -48,9 +52,6 @@ export default function DonateCard() {
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
   const [tokenId, setTokenId] = useState<bigint | null>(null);
 
-  // NEW: state for showing the selected asset balance
-  const [balanceText, setBalanceText] = useState<string>("");
-
   const donationContract = (pREWAContracts as Record<number, { Donation?: string }>)[chainId]?.Donation;
   const explorer = chainId === 56 ? "https://bscscan.com" : "https://testnet.bscscan.com";
   const isAmountValid = useMemo(() => isPositiveNumber(amount), [amount]);
@@ -63,63 +64,45 @@ export default function DonateCard() {
     setTokenIndex(0);
   }, [chainId]);
 
-  useEffect(() => {
-    (async () => {
-      const t = tokens[tokenIndex];
-      if (!t || !t.address || t.decimals) return;
-      try {
-        const [sym, dec] = await Promise.all([
-          pc?.readContract({ address: t.address, abi: erc20Abi, functionName: "symbol" }),
-          pc?.readContract({ address: t.address, abi: erc20Abi, functionName: "decimals" }),
-        ]);
-        setTokens(prev => prev.map((x, i) => i === tokenIndex ? { ...x, symbol: typeof sym === "string" ? sym : x.symbol, decimals: Number(dec ?? 18) } : x));
-      } catch {
-        setTokens(prev => prev.map((x, i) => (i === tokenIndex ? { ...x, decimals: 18 } : x)));
-      }
-    })();
-  }, [tokenIndex, chainId, pc, tokens]);
-
   const visibleTokens = useMemo(() => tokens.filter((t) => t.address === null || erc20DonateSupported), [tokens, erc20DonateSupported]);
 
   useEffect(() => {
     if (tokenIndex >= visibleTokens.length) setTokenIndex(0);
   }, [visibleTokens.length, tokenIndex]);
 
-  // NEW: fetch & show balance for the selected asset
-  useEffect(() => {
-    let cancelled = false;
-    async function loadBalance() {
-      try {
-        setBalanceText("");
-        if (!address || !pc) return;
-        const t = visibleTokens[tokenIndex];
-        if (!t) return;
+  const selectedToken = useMemo(() => visibleTokens[tokenIndex], [visibleTokens, tokenIndex]);
 
-        // Native BNB
-        if (t.address === null) {
-          const wei = await pc.getBalance({ address });
-          const pretty = formatUnits(wei, 18);
-          if (!cancelled) setBalanceText(`Balance: ${pretty} BNB`);
-          return;
-        }
+  const { data: balanceData, refetch: refetchBalance } = useBalance({
+    address,
+    token: selectedToken?.address ? selectedToken.address as Address : undefined,
+    query: {
+        enabled: !!address && !!selectedToken,
+    },
+  });
 
-        // ERC20
-        const decimals = t.decimals ?? 18;
-        const raw = await pc.readContract({
-          address: t.address as Address,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [address],
-        });
-        const pretty = formatUnits(raw as bigint, decimals);
-        if (!cancelled) setBalanceText(`Balance: ${pretty} ${t.symbol || "TOKEN"}`);
-      } catch {
-        if (!cancelled) setBalanceText("");
-      }
+  const balanceText = useMemo(() => {
+    if (balanceData) {
+        return `Balance: ${Number(balanceData.formatted).toLocaleString(undefined, {maximumFractionDigits: 8})} ${balanceData.symbol}`;
     }
-    loadBalance();
-    return () => { cancelled = true; };
-  }, [address, pc, tokenIndex, visibleTokens, chainId]);
+    return "";
+  }, [balanceData]);
+  
+  const isAmountOverLimit = useMemo(() => {
+    if (!isAmountValid || !selectedToken) return false;
+    if (selectedToken.symbol === "pREWA") {
+      return Number(amount) > DONATION_COMPLIANCE_THRESHOLD;
+    }
+    return false;
+  }, [amount, isAmountValid, selectedToken]);
+
+  // --- MODIFIED: This function now only handles UI state ---
+  const handleSuccess = () => {
+    setAmount("");
+    // The query invalidation in the hook will handle refetching.
+    // We can still call refetchBalance() here for an immediate optimistic update if desired,
+    // but the global invalidation is more robust.
+    refetchBalance(); 
+  };
 
   async function onDonate() {
     setError(null);
@@ -141,14 +124,12 @@ export default function DonateCard() {
       let result: Awaited<ReturnType<typeof donateNative>> | Awaited<ReturnType<typeof donateToken>>;
 
       if (token.address === null) {
-        const { parseEther } = await import("viem");
         const wei = parseEther(amount);
-        result = await donateNative(wei, fullName, fullAddress);
+        result = await donateNative(wei, fullName, fullAddress, { onSuccess: handleSuccess });
       } else {
-        const { parseUnits } = await import("viem");
         const decimals = token.decimals ?? 18;
         const raw = parseUnits(amount, decimals);
-        result = await donateToken(token.address as Address, raw, token.symbol || "TOKEN", decimals, fullName, fullAddress);
+        result = await donateToken(token.address as Address, raw, token.symbol || "TOKEN", decimals, fullName, fullAddress, { onSuccess: handleSuccess });
       }
 
       if (result.imagePngDataUrl) {
@@ -175,7 +156,6 @@ export default function DonateCard() {
 
       setTxHash(result.txHash);
       setTokenId(result.tokenId ?? null);
-      setAmount("");
     } catch (e: any) {
       setError(e?.shortMessage || e?.message || "Donation failed.");
     } finally {
@@ -191,6 +171,14 @@ export default function DonateCard() {
       setTimeout(() => setEmailMsg(null), 1500);
     } catch {}
   }
+
+  const buttonText = isLoading 
+    ? "Processing…" 
+    : isAmountOverLimit 
+    ? `Amount exceeds ${DONATION_COMPLIANCE_THRESHOLD} ${selectedToken?.symbol}`
+    : "Donate";
+
+  const isButtonDisabled = !isAmountValid || !address || !donationContract || isLoading || isAmountOverLimit;
 
   return (
     <div className="web3-card mx-auto max-w-2xl p-6 sm:p-8">
@@ -251,7 +239,6 @@ export default function DonateCard() {
           <div>
             <label className="web3-label">Amount</label>
             <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.0" className="web3-input" />
-            {/* NEW: balance line */}
             {balanceText && (
               <div className="mt-1 text-xs text-greyscale-400 dark:text-dark-text-secondary">
                 {balanceText}
@@ -289,8 +276,8 @@ export default function DonateCard() {
             )}
         </div>
 
-        <Button onClick={onDonate} disabled={!isAmountValid || !address || !donationContract || isLoading} className="mt-6 w-full" variant="primary" size="lg">
-          {isLoading ? <><Spinner className="mr-2" /> Processing…</> : "Donate"}
+        <Button onClick={onDonate} disabled={isButtonDisabled} className="mt-6 w-full" variant="primary" size="lg">
+          {isLoading ? <><Spinner className="mr-2" /> Processing…</> : buttonText}
         </Button>
 
         {!address && <p className="mt-4 text-center text-sm text-greyscale-400">Connect a wallet to donate.</p>}

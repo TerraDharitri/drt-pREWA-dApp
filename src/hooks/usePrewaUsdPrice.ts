@@ -24,12 +24,15 @@ export function usePrewaUsdPrice() {
     args: [usdt?.address as `0x${string}`],
     query: { enabled, refetchInterval: 20_000 },
   });
-
-  if (!enabled || isLoading || !data) return { priceUsd: undefined as number | undefined };
+  
+  // Return early if not enabled, loading, or no data
+  if (!enabled || isLoading || !data) {
+    // MODIFIED: Return isLoading state here
+    return { priceUsd: undefined as number | undefined, isLoading: isLoading || !enabled };
+  }
 
   const [, , , reserve0, reserve1, pREWAIsToken0] = data as any;
   
-
   const prewaDecimals = (tokens.find((t) => t.symbol === "pREWA")?.decimals ?? 18) as number;
   const usdtDecimals = (usdt?.decimals ?? 18) as number;
 
@@ -40,5 +43,7 @@ export function usePrewaUsdPrice() {
   const usdtFloat  = Number(formatUnits(usdtRes as bigint, usdtDecimals));
 
   const priceUsd = prewaFloat > 0 ? usdtFloat / prewaFloat : undefined;
-  return { priceUsd };
+  
+  // MODIFIED: Return isLoading state in the success case as well
+  return { priceUsd, isLoading };
 }

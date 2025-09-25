@@ -14,8 +14,7 @@ import { parseUnits, formatUnits, isAddressEqual } from "viem";
 import { formatAddress } from "@/lib/web3-utils";
 import toast from "react-hot-toast";
 import { isValidNumberInput } from "@/lib/utils";
-import { safeFind, toArray } from "@/utils/safe";
-
+import { safeFind } from "@/utils/safe";
 
 export function RemoveLiquidityForm() {
   const { address, chainId } = useAccount();
@@ -32,17 +31,26 @@ export function RemoveLiquidityForm() {
     if (availableLPs.length === 0) setSelectedLp(undefined);
   }, [availableLPs, selectedLp]);
 
-  const { data: lpBalance } = useBalance({
+  const { data: lpBalance, refetch: refetchLpBalance } = useBalance({
     address,
     token: selectedLp?.lpTokenAddress,
     query: { enabled: !!selectedLp },
   });
 
+  // --- MODIFIED: Define the success handler ---
+  const onRemoveSuccess = () => {
+    setLpAmount("");
+    toast.success("Liquidity removed successfully!");
+    refetchLPs();
+    refetchLpBalance();
+  };
+
   const { allowance, approve, isLoading: isApproving } = useTokenApproval(
     selectedLp?.lpTokenAddress,
     liquidityManagerAddress
   );
-  const { removeLiquidity, removeLiquidityBNB, isLoading: isRemoving } = useLiquidity();
+  // --- MODIFIED: Pass the success handler to the hook ---
+  const { removeLiquidity, removeLiquidityBNB, isLoading: isRemoving } = useLiquidity({ onRemoveSuccess });
 
   const isAmountValid = useMemo(() => isValidNumberInput(lpAmount), [lpAmount]);
 
@@ -61,6 +69,7 @@ export function RemoveLiquidityForm() {
 
   const isLoading = isApproving || isRemoving || isLoadingLPs;
 
+  // --- MODIFIED: Refactored handleRemove to be cleaner ---
   const handleRemove = async () => {
     if (!selectedLp || !isAmountValid || !hasSufficientBalance) {
       toast.error("Please enter a valid amount to remove.");
@@ -68,33 +77,30 @@ export function RemoveLiquidityForm() {
     }
 
     const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
-      const isBNBPair = safeFind<typeof tokens[number]>(
+    const isBNBPair = safeFind(
       tokens,
-      (t) => t?.symbol === "BNB" && isAddressEqual(t?.address!, selectedLp?.otherTokenAddress!)
+      (t: any) => t?.symbol === "BNB" && isAddressEqual(t?.address!, selectedLp?.otherTokenAddress!)
     );
 
-
-    const run = async () => {
-      if (isBNBPair) await removeLiquidityBNB(lpAmount);
-      else await removeLiquidity(selectedLp.otherTokenAddress, lpAmount);
-      setLpAmount("");
-      toast.success("Balances will update shortly.");
-      refetchLPs();
+    const run = () => {
+      if (isBNBPair) {
+        removeLiquidityBNB(lpAmount);
+      } else {
+        removeLiquidity(selectedLp.otherTokenAddress, lpAmount);
+      }
     };
 
     if (needsApproval) {
-      await approve();
-      await run();
+      approve({ onSuccess: run });
     } else {
-      await run();
+      run();
     }
   };
-
+  
   const poolOptions = useMemo(() => {
     const tokens = chainId ? TOKEN_LISTS[chainId as keyof typeof TOKEN_LISTS] : [];
     return availableLPs.map((lp) => {
-      const otherTokenInfo = safeFind<typeof tokens[number]>(tokens,  (t) => isAddressEqual(t?.address!, lp?.otherTokenAddress!));
-
+      const otherTokenInfo = safeFind(tokens,  (t: any) => isAddressEqual(t?.address!, lp?.otherTokenAddress!));
       const name = otherTokenInfo ? `pREWA / ${otherTokenInfo.symbol}` : `pREWA / ${formatAddress(lp.otherTokenAddress)}`;
       return { ...lp, name };
     });
@@ -126,7 +132,7 @@ export function RemoveLiquidityForm() {
           <select
             value={selectedLp?.id || ""}
             onChange={(e) => {
-              const selected = safeFind<typeof poolOptions[number]>(poolOptions, (p) => p?.id === e.target.value);
+              const selected = safeFind(poolOptions, (p: any) => p?.id === e.target.value);
               setSelectedLp(selected);
               setLpAmount("");
             }}

@@ -1,6 +1,4 @@
-// src/components/web3/liquidity/AddLiquidityForm.tsx
 "use client";
-
 import React, { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { parseUnits, formatUnits, Address } from "viem";
@@ -17,14 +15,13 @@ import { useWatchAsset } from "@/hooks/useWatchAsset";
 import { pREWAAddresses } from "@/constants";
 import { isValidNumberInput } from "@/lib/utils";
 import { TokenSelectorModal } from "../swap/TokenSelectorModal";
+import { LiquiditySuccessModal } from './LiquiditySuccessModal'; // Import the success modal
 
-// Updated type to include balance
 type LpTokenInfo = { address: Address; symbol: string; decimals: number; balance: bigint };
 
 export function AddLiquidityForm() {
   const { chainId } = useAccount();
   const [discoveredLpToken, setDiscoveredLpToken] = useState<LpTokenInfo | null>(null);
-  const [isAddingLp, setIsAddingLp] = useState(false);
   const { addTokenToWallet } = useWatchAsset();
 
   const {
@@ -33,10 +30,11 @@ export function AddLiquidityForm() {
     isModalOpen, openModal, closeModal, modalType, reserves,
   } = useLiquidityState();
 
+  // --- MODIFIED: Define the success handler ---
   const onLiquidityAdded = (lpToken: LpTokenInfo) => {
     handleAmountAChange("");
     handleAmountBChange("");
-    setDiscoveredLpToken(lpToken);
+    setDiscoveredLpToken(lpToken); // This will open the success modal
   };
 
   const liquidityManagerAddress = chainId
@@ -50,6 +48,7 @@ export function AddLiquidityForm() {
     tokenB?.address, liquidityManagerAddress
   );
 
+  // --- MODIFIED: Pass the success handler to the hook ---
   const { addLiquidity, addLiquidityBNB, isLoading: isWriting } = useLiquidity({
     onAddSuccess: onLiquidityAdded,
   });
@@ -78,18 +77,25 @@ export function AddLiquidityForm() {
 
   const handleAdd = async () => {
     if (!tokenA || !tokenB) return;
-    if (needsApprovalA) { await approveA(); return; }
-    if (needsApprovalB) { await approveB(); return; }
-    const isA_BNB = tokenA.symbol === "BNB";
-    const isB_BNB = tokenB.symbol === "BNB";
-    if (isA_BNB || isB_BNB) {
-      const otherToken = isA_BNB ? tokenB : tokenA;
-      const amountToken = isA_BNB ? amountB : amountA;
-      const amountBNB = isA_BNB ? amountA : amountB;
-      await addLiquidityBNB(otherToken.address, amountToken, amountBNB);
-    } else {
-      await addLiquidity(tokenA.address, tokenB.address, amountA, amountB);
-    }
+    
+    // Define the action to run after approval (if needed)
+    const run = async () => {
+        const isA_BNB = tokenA.symbol === "BNB";
+        const isB_BNB = tokenB.symbol === "BNB";
+        if (isA_BNB || isB_BNB) {
+          const otherToken = isA_BNB ? tokenB : tokenA;
+          const amountToken = isA_BNB ? amountB : amountA;
+          const amountBNB = isA_BNB ? amountA : amountB;
+          await addLiquidityBNB(otherToken.address, amountToken, amountBNB);
+        } else {
+          await addLiquidity(tokenA.address, tokenB.address, amountA, amountB);
+        }
+    };
+
+    if (needsApprovalA) { await approveA({ onSuccess: handleAdd }); return; }
+    if (needsApprovalB) { await approveB({ onSuccess: handleAdd }); return; }
+    
+    await run();
   };
 
   const handlePercentClick = (tokenType: "A" | "B", percent: number) => {
@@ -99,18 +105,6 @@ export function AddLiquidityForm() {
     const formattedAmount = formatUnits(newAmount, balance.decimals);
     if (tokenType === "A") handleAmountAChange(formattedAmount);
     else handleAmountBChange(formattedAmount);
-  };
-
-  const handleAddLpToWallet = async () => {
-    if (!discoveredLpToken) return;
-    setIsAddingLp(true);
-    await addTokenToWallet(
-      discoveredLpToken.address,
-      discoveredLpToken.symbol,
-      discoveredLpToken.decimals
-    );
-    setIsAddingLp(false);
-    setDiscoveredLpToken(null);
   };
 
   const buttonText = () => {
@@ -160,7 +154,6 @@ export function AddLiquidityForm() {
               {[25, 50, 75, 100].map((p) => (<Button key={p} size="sm" variant="secondary" onClick={() => handlePercentClick("B", p)} disabled={isBusy || !balanceB || balanceB.value === 0n}>{p === 100 ? "MAX" : `${p}%`}</Button>))}
             </div>
           </div>
-          {/* FIX: Display actual pool rates */}
           {reserves.reserveA > 0n && reserves.reserveB > 0n && (
             <div className="text-xs text-center text-gray-500 pt-2 p-3 border rounded-md bg-muted/50">
               <p className="font-semibold mb-1">Current Pool Rates</p>
@@ -168,8 +161,6 @@ export function AddLiquidityForm() {
               <p>1 {tokenB.symbol} = {Number(formatUnits((reserves.reserveA * (10n ** BigInt(tokenB.decimals))) / reserves.reserveB, tokenA.decimals)).toLocaleString(undefined, { maximumFractionDigits: 8 })} {tokenA.symbol}</p>
             </div>
           )}
-
-          {reserves.reserveA > 0n && reserves.reserveB > 0n && (<div className="text-xs text-center text-gray-500 pt-2"><p className="font-semibold">Current Pool Rates</p></div>)}
           <Button onClick={handleAdd} className="w-full" disabled={isBusy || !isAmountAValid || !isAmountBValid || !hasSufficientBalanceA || !hasSufficientBalanceB}>
             {isBusy && <Spinner className="mr-2 h-4 w-4" />}
             {buttonText()}
@@ -178,25 +169,13 @@ export function AddLiquidityForm() {
       </Card>
       
       {discoveredLpToken && (
-        <Card className="max-w-md mx-auto mt-4">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex flex-col">
-              {/* Display the formatted balance and symbol */}
-              <span className="font-bold text-lg">
-                {Number(formatUnits(discoveredLpToken.balance, discoveredLpToken.decimals)).toLocaleString(undefined, { maximumFractionDigits: 8 })} {discoveredLpToken.symbol}
-              </span>
-              <span className="text-sm text-gray-500">LP Tokens received!</span>
-            </div>
-            <Button onClick={handleAddLpToWallet} disabled={isAddingLp}>
-              {isAddingLp ? (
-                <Spinner className="mr-2 h-4 w-4" />
-              ) : (
-                <WalletIcon className="mr-2 h-4 w-4" />
-              )}
-              Add to Wallet
-            </Button>
-          </CardContent>
-        </Card>
+         <LiquiditySuccessModal
+            isOpen={!!discoveredLpToken}
+            onClose={() => setDiscoveredLpToken(null)}
+            lpAmount={discoveredLpToken.balance}
+            lpTokenAddress={discoveredLpToken.address}
+            lpTokenSymbol={discoveredLpToken.symbol}
+        />
       )}
 
       <TokenSelectorModal isOpen={isModalOpen} onClose={closeModal} onSelect={handleSelectToken} tokenList={TOKENS} exclude={modalType === "A" ? [tokenB] : [tokenA]} />

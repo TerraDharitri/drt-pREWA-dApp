@@ -62,7 +62,7 @@ export const LP_TOKEN_LISTS: { [chainId: number]: Token[] } = {
   56: [ // Mainnet
     {
       symbol: "pREWA-USDT LP",
-      name: "PancakeSwap pREWA-USDT LP",
+      name: "PancakeSwap pREWA-USDT LP (Cake-LP)",
       address: "0x53b0486292ff813cc794465279c9BB8feFf2b964", // Your verified mainnet LP address
       decimals: 18,
       logoURI: "/logo.svg", // Or a custom LP icon
@@ -71,7 +71,7 @@ export const LP_TOKEN_LISTS: { [chainId: number]: Token[] } = {
   97: [ // Testnet
      {
       symbol: "pREWA-USDT LP",
-      name: "PancakeSwap pREWA-USDT LP",
+      name: "PancakeSwap pREWA-USDT LP (Cake-LP)",
       address: "0xb01c948466512e8cfC2881D52911c6A1a62eD21a", // Assuming testnet uses the same, update if different
       decimals: 18,
       logoURI: "/logo.svg",
