@@ -12,8 +12,22 @@ import { pREWAAddresses } from "@/constants";
 
 const SECONDS_PER_DAY = 86_400;
 
-// Minimal ABI item for your factory from VestingFactory.json
-// function createVesting(address beneficiary, uint256 startTime, uint256 cliffDuration, uint256 duration, bool revocable, uint256 amount)
+// Minimal ABI for pREWA token's approve function
+const erc20ApproveAbi = [
+    {
+        "constant": false,
+        "inputs": [
+            { "name": "_spender", "type": "address" },
+            { "name": "_value", "type": "uint256" }
+        ],
+        "name": "approve",
+        "outputs": [{ "name": "", "type": "bool" }],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+] as const;
+
 const vestingFactoryAbi = [
   {
     type: "function",
@@ -41,32 +55,37 @@ export default function CreateVestingSchedule() {
   const { isOwner, isLoading: isOwnerLoading } = useIsSafeOwner();
   const { proposeTransaction, isProposing } = useSafeProposal();
 
-  // Form state
   const [beneficiary, setBeneficiary] = useState("");
-  const [amount, setAmount] = useState("");           // human amount, e.g. "100"
-  const [startDate, setStartDate] = useState("");     // yyyy-mm-dd (native date input)
-  const [durationDays, setDurationDays] = useState(""); // string days
-  const [cliffDays, setCliffDays] = useState("");       // string days
+  const [amount, setAmount] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [durationDays, setDurationDays] = useState("");
+  const [cliffDays, setCliffDays] = useState("");
   const [revocable, setRevocable] = useState(true);
 
-  // Resolve factory address per chain
   const vestingFactoryAddress = useMemo(() => {
     if (!chainId) return undefined;
     return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
       ?.VestingFactory as Address | undefined;
+  }, [chainId]);
+  
+  // --- ADDED: Get the pREWA token address ---
+  const pREWAAddress = useMemo(() => {
+    if (!chainId) return undefined;
+    return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
+      ?.pREWAToken as Address | undefined;
   }, [chainId]);
 
   const disabled =
     isProposing ||
     isOwnerLoading ||
     !vestingFactoryAddress ||
+    !pREWAAddress || // Also disable if pREWA address is missing
     !beneficiary ||
     !amount ||
-    !durationDays; // cliff optional
+    !durationDays;
 
   const parseDateToUnix = (value: string) => {
     if (!value) return 0n;
-    // value is yyyy-mm-dd from <input type="date">
     const tsMs = Date.parse(`${value}T00:00:00Z`);
     if (Number.isNaN(tsMs)) return 0n;
     return BigInt(Math.floor(tsMs / 1000));
@@ -76,8 +95,8 @@ export default function CreateVestingSchedule() {
     e.preventDefault();
 
     try {
-      if (!vestingFactoryAddress) {
-        toast.error("Unsupported network: VestingFactory not configured.");
+      if (!vestingFactoryAddress || !pREWAAddress) {
+        toast.error("Unsupported network: Contract addresses not configured.");
         return;
       }
       if (!/^0x[a-fA-F0-9]{40}$/.test(beneficiary)) {
@@ -90,7 +109,6 @@ export default function CreateVestingSchedule() {
         return;
       }
 
-      // Validate and convert days -> seconds
       const durDays = parseInt(durationDays.trim(), 10);
       if (!Number.isFinite(durDays) || durDays < 1) {
         toast.error("Vesting duration must be at least 1 day.");
@@ -109,7 +127,6 @@ export default function CreateVestingSchedule() {
       const durationSecs = BigInt(durDays) * BigInt(SECONDS_PER_DAY);
       const cliffSecs = BigInt(cliffDaysNum) * BigInt(SECONDS_PER_DAY);
 
-      // Optional start date (0 => start now / contract default)
       const startUnix = parseDateToUnix(startDate);
       if (startUnix > 0n) {
         const todayZeroUtc = BigInt(Math.floor(Date.now() / 1000 / SECONDS_PER_DAY) * SECONDS_PER_DAY);
@@ -119,40 +136,53 @@ export default function CreateVestingSchedule() {
         }
       }
 
-      // pREWA assumed 18 decimals; adjust if not
       const amountWei = parseUnits(amount, 18);
 
-      // Build calldata for factory.createVesting(...)
-      const data = encodeFunctionData({
-        abi: vestingFactoryAbi as any,
+      // --- MODIFIED: Build a batch transaction ---
+      
+      // Transaction 1: Approve the VestingFactory to spend pREWA
+      const approveData = encodeFunctionData({
+          abi: erc20ApproveAbi,
+          functionName: 'approve',
+          args: [vestingFactoryAddress, amountWei]
+      });
+
+      // Transaction 2: Call createVesting
+      const createVestingData = encodeFunctionData({
+        abi: vestingFactoryAbi,
         functionName: "createVesting",
         args: [
           beneficiary as Address,
-          startUnix,        // seconds (uint256)
-          cliffSecs,        // seconds (uint256)
-          durationSecs,     // seconds (uint256)
-          revocable,        // bool
-          amountWei,        // uint256
+          startUnix,
+          cliffSecs,
+          durationSecs,
+          revocable,
+          amountWei,
         ],
-      }) as Hex;
-
-      // Propose to Safe
-      await proposeTransaction({
-        to: vestingFactoryAddress as Address,
-        data,
-        value: "0",
       });
 
+      // Propose the batch to the Safe
+      await proposeTransaction([
+          {
+              to: pREWAAddress,
+              data: approveData,
+              value: '0'
+          },
+          {
+              to: vestingFactoryAddress,
+              data: createVestingData,
+              value: '0'
+          }
+      ]);
+
       toast.success("Transaction proposed to Safe!");
-      // (Optional) clear after success
-      // setBeneficiary(""); setAmount(""); setStartDate(""); setDurationDays(""); setCliffDays(""); setRevocable(true);
+
     } catch (err: any) {
       console.error(err);
       toast.error(err?.shortMessage ?? err?.message ?? "Failed to propose");
     }
   };
 
-  // Outside Safe, only owners can see the form
   if (!safeMode && isOwnerLoading) {
     return (
       <div className="rounded-md border p-6 text-center text-sm opacity-70">

@@ -9,6 +9,9 @@ export type ProposeArgs = {
   value?: string; // decimal string in wei, default "0"
 };
 
+// --- MODIFIED: Allow proposeTransaction to accept a single transaction or an array ---
+export type ProposeTransactionProps = ProposeArgs | ProposeArgs[];
+
 export function useSafeProposal() {
   const [isSafe, setIsSafe] = useState(false);
   const [safeAddress, setSafeAddress] = useState<`0x${string}` | undefined>();
@@ -43,11 +46,8 @@ export function useSafeProposal() {
 
         setSafeAddress(safeInfo.safeAddress as `0x${string}`);
 
-        // Some SDK versions include chainId on the Safe info
         const cid =
-          // number
           (safeInfo as any)?.chainId ??
-          // sometimes string
           (typeof (safeInfo as any)?.chainId === 'string'
             ? Number((safeInfo as any).chainId)
             : undefined);
@@ -58,7 +58,7 @@ export function useSafeProposal() {
           setChainId(undefined);
         }
       } catch {
-        // leave undefined; UI guards on isSafe/safeAddress
+        // leave undefined
       }
     })();
 
@@ -68,7 +68,7 @@ export function useSafeProposal() {
   }, []);
 
   const proposeTransaction = useCallback(
-    async ({ to, data, value = '0' }: ProposeArgs) => {
+    async (props: ProposeTransactionProps) => {
       if (!isSafe || !sdkRef.current) {
         throw new Error(
           'Open this page inside your Safe to propose the transaction.'
@@ -77,14 +77,15 @@ export function useSafeProposal() {
 
       setIsProposing(true);
       try {
-        const tx: BaseTransaction = {
-          to,
-          value,
-          data: (data ?? '0x') as string, // SDK expects plain string
-        };
+        // --- MODIFIED: Standardize input to an array of BaseTransaction objects ---
+        const txs: BaseTransaction[] = (Array.isArray(props) ? props : [props]).map(p => ({
+            to: p.to,
+            value: p.value || '0',
+            data: (p.data || '0x') as string,
+        }));
 
         // Returns { safeTxHash }
-        return await sdkRef.current.txs.send({ txs: [tx] });
+        return await sdkRef.current.txs.send({ txs });
       } finally {
         setIsProposing(false);
       }
