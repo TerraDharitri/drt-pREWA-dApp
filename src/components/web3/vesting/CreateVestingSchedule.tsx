@@ -68,7 +68,6 @@ export default function CreateVestingSchedule() {
       ?.VestingFactory as Address | undefined;
   }, [chainId]);
   
-  // --- ADDED: Get the pREWA token address ---
   const pREWAAddress = useMemo(() => {
     if (!chainId) return undefined;
     return pREWAAddresses[chainId as keyof typeof pREWAAddresses]
@@ -79,17 +78,10 @@ export default function CreateVestingSchedule() {
     isProposing ||
     isOwnerLoading ||
     !vestingFactoryAddress ||
-    !pREWAAddress || // Also disable if pREWA address is missing
+    !pREWAAddress ||
     !beneficiary ||
     !amount ||
     !durationDays;
-
-  const parseDateToUnix = (value: string) => {
-    if (!value) return 0n;
-    const tsMs = Date.parse(`${value}T00:00:00Z`);
-    if (Number.isNaN(tsMs)) return 0n;
-    return BigInt(Math.floor(tsMs / 1000));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,27 +119,36 @@ export default function CreateVestingSchedule() {
       const durationSecs = BigInt(durDays) * BigInt(SECONDS_PER_DAY);
       const cliffSecs = BigInt(cliffDaysNum) * BigInt(SECONDS_PER_DAY);
 
-      const startUnix = parseDateToUnix(startDate);
-      if (startUnix > 0n) {
-        const todayZeroUtc = BigInt(Math.floor(Date.now() / 1000 / SECONDS_PER_DAY) * SECONDS_PER_DAY);
-        if (startUnix < todayZeroUtc) {
+      // --- MODIFIED: Correctly handle "today" vs "future" start dates ---
+      let startUnix = 0n; // Default to 0, which the contract interprets as "now"
+      if (startDate) {
+        // new Date('YYYY-MM-DD') correctly creates a date at midnight UTC.
+        const selectedDateUTC = new Date(startDate);
+
+        // To get "today" at UTC midnight for comparison, we construct it from UTC parts.
+        const now = new Date();
+        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+        if (selectedDateUTC < todayUTC) {
           toast.error("Start date cannot be in the past.");
           return;
+        }
+        
+        // Only set a specific startTime if the selected date is in the future.
+        // If the date is today, we leave startUnix as 0 to let the contract use block.timestamp.
+        if (selectedDateUTC > todayUTC) {
+          startUnix = BigInt(Math.floor(selectedDateUTC.getTime() / 1000));
         }
       }
 
       const amountWei = parseUnits(amount, 18);
 
-      // --- MODIFIED: Build a batch transaction ---
-      
-      // Transaction 1: Approve the VestingFactory to spend pREWA
       const approveData = encodeFunctionData({
           abi: erc20ApproveAbi,
           functionName: 'approve',
           args: [vestingFactoryAddress, amountWei]
       });
 
-      // Transaction 2: Call createVesting
       const createVestingData = encodeFunctionData({
         abi: vestingFactoryAbi,
         functionName: "createVesting",
@@ -161,7 +162,6 @@ export default function CreateVestingSchedule() {
         ],
       });
 
-      // Propose the batch to the Safe
       await proposeTransaction([
           {
               to: pREWAAddress,
